@@ -62,6 +62,8 @@ function groupByYear(bibtexParseJSData, citationJSData) {
 
             if (citationJSData[index].author != undefined) {
                 citation[AUTHOR] = citationJSData[index].author;
+            } else if (citationJSData[index].editor != undefined) {
+                citation[AUTHOR] = citationJSData[index].editor;
             } else {
                 citation[AUTHOR] = entrytags.author
             }
@@ -92,6 +94,8 @@ function groupByYear(bibtexParseJSData, citationJSData) {
 
             if (citationJSData[index].author != undefined) {
                 citation[AUTHOR] = citationJSData[index].author;
+            } else if (citationJSData[index].editor != undefined) {
+                citation[AUTHOR] = citationJSData[index].editor;
             } else {
                 citation[AUTHOR] = entrytags.author
             }
@@ -172,13 +176,13 @@ function handler() {
             let parsedBibTeX = bibTeXParse.toJSON(allText);
             parseAsync(allText).then((result) => {
                 let lowerCaseKeysParsedBibTeX = convertKeysToLowerCase(parsedBibTeX);
-                // console.log(lowerCaseKeysParsedBibTeX);
+                console.log(lowerCaseKeysParsedBibTeX);
 
                 let citationJSParsedData = cite.set(result).get(opt)
-                // console.log(citationJSParsedData);
+                console.log(citationJSParsedData);
                 
                 let bibTeXDataGroupedByYear = groupByYear(lowerCaseKeysParsedBibTeX, citationJSParsedData);
-                // console.log(bibTeXDataGroupedByYear);
+                console.log(bibTeXDataGroupedByYear);
                 
                 prepareBibTeXContentDiv(bibTeXDataGroupedByYear);
             });
