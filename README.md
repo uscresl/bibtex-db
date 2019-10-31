@@ -39,6 +39,7 @@ Similar to `status` tag, add a `type` tag that indicates the type of paper:
 * `workshop` or `abstract`
 * `journal`
 * `preprint`
+* `book`
 
 Group papers for the author view by year and type, as in https://robotics.usc.edu/resl/people/67/ (it will look the same).
 
