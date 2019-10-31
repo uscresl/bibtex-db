@@ -2541,12 +2541,15 @@ function prepareBibTeXContentDiv(contentData) {
             if (element.author != undefined) {
                 if (Array.isArray(element.author)) {
                     element.author.forEach((author, index) => {
-                        if (author.given != undefined) {
-                            if (element.author.length > 1 && (index == element.author.length - 1)) {
-                                contentString = contentString.substring(0, contentString.length - 2);
-                                contentString += " and ";
+                        if (element.author.length > 1 && (index == element.author.length - 1)) {
+                            contentString = contentString.substring(0, contentString.length - 2);
+                            contentString += " and ";
+                        }
+
+                        if (author.given != undefined || author.family != undefined) {
+                            if (author.given != undefined) {
+                                contentString += author.given + " ";
                             }
-                            contentString += author.given + " ";
                             if (author.family != undefined) {
                                 contentString += author.family;
                             }
@@ -2561,15 +2564,19 @@ function prepareBibTeXContentDiv(contentData) {
                     contentString += element.author + ", "
                 }
             }
+
             if (element.title != undefined) {
                 contentString += element.title + ", ";
             }
+
             if (element.year != undefined) {
                 contentString += element.year + ", ";
             }
+
             if (element.status != undefined) {
                 contentString += element.status + ", ";
             }
+            
             contentString = contentString.substring(0, contentString.length - 2);
             contentString += ".";
             contentString += "</li>";
