@@ -5,12 +5,15 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "browserify-test": "browserify ntest.js -o test.js",
     "browserify": "browserify nindex.js -o index.js",
+    "start-test": "nodemon --exec \"npm run browserify-test\"",
     "start": "nodemon --exec \"npm run browserify\""
   },
   "nodemonConfig": {
     "ignore": [
-      "index.js"
+      "index.js",
+      "test.js"
     ]
   },
   "keywords": [
@@ -25,6 +28,7 @@
   "dependencies": {
     "bibtex-parse-js": "0.0.24",
     "citation-js": "^0.5.0-alpha.4",
-    "jquery": "^3.4.1"
+    "jquery": "^3.4.1",
+    "latex-parser": "^0.6.2"
   }
 }

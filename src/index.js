@@ -2413,13 +2413,14 @@ const Cite = require('citation-js');
 const $ = require('jquery');
 
 // constants
-const INPUT_FILE_NAME = "sample.bib";
+const INPUT_FILE_NAME = "test.bib";
 const NO_YEAR = "Others";
 const TITLE = "title";
 const AUTHOR = "author";
 const BOOKTITLE = "booktitle";
 const YEAR = "year";
 const STATUS = "status";
+const TYPE = "type"
 
 // creating object for citation.js
 let cite = new Cite()
@@ -2451,11 +2452,22 @@ function convertKeysToLowerCase(jsonInput) {
     return (jsonInput);
 }
 
-function groupByYear(bibtexParseJSData, citationJSData) {
+function groupByYear(bibtexParseJSData, citationJSData, includeUnderReview, includeAccepted) {
     let bibTeXDataGroupedByYear = {};
 
-    bibtexParseJSData.forEach((element, index) => {
+    // bibtexParseJSData.forEach((element, index) => {
+    for (let index = 0; index < bibtexParseJSData.length; index++) {
+        const element = bibtexParseJSData[index];
         let entrytags = element.entrytags
+        if (entrytags.status != undefined) {
+            if (!includeUnderReview && entrytags.status == "under-review") {
+                continue;
+            }
+
+            if (!includeAccepted && entrytags.status == "accepted") {
+                continue;
+            }
+        }
         // handle cases where year is not defined
         if (entrytags.year == undefined) {
             if (bibTeXDataGroupedByYear[NO_YEAR] == undefined) {
@@ -2485,6 +2497,10 @@ function groupByYear(bibtexParseJSData, citationJSData) {
 
             if (entrytags.status != undefined) {
                 citation[STATUS] = entrytags.status;
+            }
+
+            if (entrytags.type != undefined) {
+                citation[TYPE] = entrytags.type;
             }
 
             bibTeXDataGroupedByYear[NO_YEAR].push(citation);
@@ -2523,10 +2539,14 @@ function groupByYear(bibtexParseJSData, citationJSData) {
                 citation[STATUS] = entrytags.status;
             }
 
+            if (entrytags.type != undefined) {
+                citation[TYPE] = entrytags.type;
+            }
+
             // console.log(entrytags, citationJSData[index], citation);
             bibTeXDataGroupedByYear[entrytags.year].push(citation);
         }
-    });
+    }
 
     return bibTeXDataGroupedByYear;
 }
@@ -2597,7 +2617,7 @@ function handler() {
                 let citationJSParsedData = cite.set(result).get(opt)
                 console.log(citationJSParsedData);
                 
-                let bibTeXDataGroupedByYear = groupByYear(lowerCaseKeysParsedBibTeX, citationJSParsedData);
+                let bibTeXDataGroupedByYear = groupByYear(lowerCaseKeysParsedBibTeX, citationJSParsedData, true, true);
                 console.log(bibTeXDataGroupedByYear);
                 
                 prepareBibTeXContentDiv(bibTeXDataGroupedByYear);
