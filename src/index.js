@@ -2413,7 +2413,7 @@ const Cite = require('citation-js');
 const $ = require('jquery');
 
 // constants
-const INPUT_FILE_NAME = "test.bib";
+const INPUT_FILE_NAME = "sample.bib";
 const NO_YEAR = "Others";
 const TITLE = "title";
 const AUTHOR = "author";
@@ -2423,11 +2423,9 @@ const STATUS = "status";
 const TYPE = "type"
 
 // creating object for citation.js
-let cite = new Cite()
-let opt = {
+let citeOptions = {
     type: 'json'
 }
-let parseAsync = Cite.inputAsync
 
 function convertKeysToLowerCase(jsonInput) {
     if (jsonInput instanceof Array) {
@@ -2452,12 +2450,27 @@ function convertKeysToLowerCase(jsonInput) {
     return (jsonInput);
 }
 
-function groupByYear(bibtexParseJSData, citationJSData, includeUnderReview, includeAccepted) {
+function getBibTeXStringFromBibtexParseJSON(bibtexParseJSON) {
+    let bibtexString = '';
+    bibtexString += '@' + bibtexParseJSON.entrytype + '{';
+    bibtexString += bibtexParseJSON.citationkey + ',';
+    for (let key in bibtexParseJSON.entrytags) {
+        value = bibtexParseJSON.entrytags[key];
+        bibtexString += key + "=" + '{' + value + "}," ;
+    }
+    bibtexString += '}';
+    return bibtexString;
+}
+
+function groupByYear(bibtexParseJSData, includeUnderReview, includeAccepted) {
     let bibTeXDataGroupedByYear = {};
 
     // bibtexParseJSData.forEach((element, index) => {
     for (let index = 0; index < bibtexParseJSData.length; index++) {
         const element = bibtexParseJSData[index];
+        let cite = new Cite(getBibTeXStringFromBibtexParseJSON(element))
+        let citationJSData = cite.get(citeOptions)
+        let citationJSElement = citationJSData[0]
         let entrytags = element.entrytags
         if (entrytags.status != undefined) {
             if (!includeUnderReview && entrytags.status == "under-review") {
@@ -2475,22 +2488,22 @@ function groupByYear(bibtexParseJSData, citationJSData, includeUnderReview, incl
             }
 
             let citation = {}
-            if (citationJSData[index].title != undefined) {
-                citation[TITLE] = citationJSData[index].title;
+            if (citationJSElement.title != undefined) {
+                citation[TITLE] = citationJSElement.title;
             } else {
                 citation[TITLE] = entrytags.title
             }
 
-            if (citationJSData[index].author != undefined) {
-                citation[AUTHOR] = citationJSData[index].author;
-            } else if (citationJSData[index].editor != undefined) {
-                citation[AUTHOR] = citationJSData[index].editor;
+            if (citationJSElement.author != undefined) {
+                citation[AUTHOR] = citationJSElement.author;
+            } else if (citationJSElement.editor != undefined) {
+                citation[AUTHOR] = citationJSElement.editor;
             } else {
                 citation[AUTHOR] = entrytags.author
             }
 
-            if (citationJSData[index]["container-title"] != undefined) {
-                citation[BOOKTITLE] = citationJSData[index]["container-title"];
+            if (citationJSElement["container-title"] != undefined) {
+                citation[BOOKTITLE] = citationJSElement["container-title"];
             } else {
                 citation[BOOKTITLE] = entrytags.booktitle
             }
@@ -2511,22 +2524,22 @@ function groupByYear(bibtexParseJSData, citationJSData, includeUnderReview, incl
             }
 
             let citation = {}
-            if (citationJSData[index].title != undefined) {
-                citation[TITLE] = citationJSData[index].title;
+            if (citationJSElement.title != undefined) {
+                citation[TITLE] = citationJSElement.title;
             } else {
                 citation[TITLE] = entrytags.title
             }
 
-            if (citationJSData[index].author != undefined) {
-                citation[AUTHOR] = citationJSData[index].author;
-            } else if (citationJSData[index].editor != undefined) {
-                citation[AUTHOR] = citationJSData[index].editor;
+            if (citationJSElement.author != undefined) {
+                citation[AUTHOR] = citationJSElement.author;
+            } else if (citationJSElement.editor != undefined) {
+                citation[AUTHOR] = citationJSElement.editor;
             } else {
                 citation[AUTHOR] = entrytags.author
             }
 
-            if (citationJSData[index]["container-title"] != undefined) {
-                citation[BOOKTITLE] = citationJSData[index]["container-title"];
+            if (citationJSElement["container-title"] != undefined) {
+                citation[BOOKTITLE] = citationJSElement["container-title"];
             } else {
                 citation[BOOKTITLE] = entrytags.booktitle
             }
@@ -2543,7 +2556,6 @@ function groupByYear(bibtexParseJSData, citationJSData, includeUnderReview, incl
                 citation[TYPE] = entrytags.type;
             }
 
-            // console.log(entrytags, citationJSData[index], citation);
             bibTeXDataGroupedByYear[entrytags.year].push(citation);
         }
     }
@@ -2610,18 +2622,14 @@ function handler() {
         if (this.status === 200 || this.status == 0) {
             let allText = this.responseText;
             let parsedBibTeX = bibTeXParse.toJSON(allText);
-            parseAsync(allText).then((result) => {
-                let lowerCaseKeysParsedBibTeX = convertKeysToLowerCase(parsedBibTeX);
-                console.log(lowerCaseKeysParsedBibTeX);
-
-                let citationJSParsedData = cite.set(result).get(opt)
-                console.log(citationJSParsedData);
-                
-                let bibTeXDataGroupedByYear = groupByYear(lowerCaseKeysParsedBibTeX, citationJSParsedData, true, true);
-                console.log(bibTeXDataGroupedByYear);
-                
-                prepareBibTeXContentDiv(bibTeXDataGroupedByYear);
-            });
+            
+            let lowerCaseKeysParsedBibTeX = convertKeysToLowerCase(parsedBibTeX);
+            console.log(lowerCaseKeysParsedBibTeX);
+            
+            let bibTeXDataGroupedByYear = groupByYear(lowerCaseKeysParsedBibTeX, true, true);
+            console.log(bibTeXDataGroupedByYear);
+            
+            prepareBibTeXContentDiv(bibTeXDataGroupedByYear);
             
         }
     }
