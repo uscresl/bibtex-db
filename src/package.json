@@ -29,6 +29,7 @@
     "bibtex-parse-js": "0.0.24",
     "citation-js": "^0.5.0-alpha.4",
     "jquery": "^3.4.1",
-    "latex-parser": "^0.6.2"
+    "latex-parser": "^0.6.2",
+    "remove-accents": "^0.4.2"
   }
 }

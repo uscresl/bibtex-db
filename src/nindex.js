@@ -3,6 +3,9 @@
 const bibTeXParse = require('bibtex-parse-js');
 // second parser import
 const Cite = require('citation-js');
+// remove accents
+const removeAccents = require('remove-accents');
+
 const $ = require('jquery');
 
 // CONSTANTS
@@ -85,7 +88,7 @@ function groupByYear(bibtexParseJSData, includeUnderReview, includeAccepted) {
         // get the citation-js data and then get the element
         let citationJSData = cite.get(citeOptions)
         let citationJSElement = citationJSData[0]
-
+        
         // hold the entrytags of bibtex-parse-js data
         let entrytags = element.entrytags
 
