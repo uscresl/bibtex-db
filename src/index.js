@@ -2414,11 +2414,10 @@ const bibTeXParse = require('bibtex-parse-js');
 const Cite = require('citation-js');
 // remove accents
 const removeAccents = require('remove-accents');
-
 const $ = require('jquery');
 
 // CONSTANTS
-const INPUT_FILENAME = "sample.bib";
+const INPUT_FILENAME = "https://sites.usc.edu/resl/files/2019/11/sample.bib";
 const NO_YEAR = "Others";
 const TITLE = "title";
 const AUTHOR = "author";
@@ -2427,6 +2426,8 @@ const CONTAINER_TITLE = "container-title"
 const YEAR = "year";
 const STATUS = "status";
 const TYPE = "type"
+const CITATION_JS = "citationjs"
+const BIBTEX_PARSE_JS = "bibtexparsejs"
 
 /**
  * Takes a json object and returns a json object with lowercased keys.
@@ -2467,10 +2468,88 @@ function getBibTeXStringFromBibtexParseJSON(bibtexParseJSON) {
     bibtexString += bibtexParseJSON.citationkey + ',';
     for (let key in bibtexParseJSON.entrytags) {
         value = bibtexParseJSON.entrytags[key];
-        bibtexString += key + "=" + '{' + value + "}," ;
+        bibtexString += "    " + key + "=" + '{' + value + "}," ;
     }
     bibtexString += '}';
     return bibtexString;
+}
+
+function getBibTeXStringFromBibtexParseJSONArray(bibtexParseJSONArray) {
+    let bibtexString = '';
+    for (let index = 0; index < bibtexParseJSONArray.length; index++) {
+        bibtexParseJSON = bibtexParseJSONArray[index]
+        bibtexString += '@' + bibtexParseJSON.entrytype + '{';
+        bibtexString += bibtexParseJSON.citationkey + ',\n';
+        for (let key in bibtexParseJSON.entrytags) {
+            value = bibtexParseJSON.entrytags[key];
+            bibtexString += "    " + key + "=" + '{' + value + "},\n" ;
+        }
+        bibtexString += '}\n';
+    }
+    return bibtexString;
+}
+
+function getCombinedParsedData(bibtexParseJSData) {
+    let combinedParsedData = [];
+    let citeOptions = {
+        type: 'json'
+    };
+    for (let index = 0; index < bibtexParseJSData.length; index++) {
+        // options for citation-js get() method
+        let combinedDataElement = {};
+        let bibTeXParseElement = bibtexParseJSData[index];
+        let cite = new Cite(getBibTeXStringFromBibtexParseJSON(bibTeXParseElement));
+        // get the citation-js data and then get the element
+        let citationJSParsedElement = cite.get(citeOptions);
+        combinedDataElement[CITATION_JS] = citationJSParsedElement[0];
+        combinedDataElement[BIBTEX_PARSE_JS] = bibTeXParseElement;
+        combinedParsedData.push(combinedDataElement);
+    }
+    return combinedParsedData
+}
+/**
+ * 
+ * @param {Array} familyNames 
+ * @param {Array} givenNames 
+ * @param {Array} combinedParsedData 
+ */
+function getPublications(familyNames, givenNames, combinedParsedData) {
+    let publications = [];
+    for (let index = 0; index < combinedParsedData.length; index++) {
+        let combinedDataElement = combinedParsedData[index];
+        let citationJSElement = combinedDataElement[CITATION_JS];
+        let bibTeXParseElement = combinedDataElement[BIBTEX_PARSE_JS];
+        let matchFound = false;
+        let authors = citationJSElement.author;
+        if (authors != undefined) {
+            for (let f = 0; f < familyNames.length; f++) {
+                familyName = familyNames[f];
+                for (let g = 0; g < givenNames.length; g++) {
+                    givenName = givenNames[g];
+                    for (let a = 0; a < authors.length; a++) {
+                        author = authors[a];
+                        if (author.given != undefined 
+                            && removeAccents(author.given).toLowerCase() == givenName.toLowerCase() 
+                            && author.family != undefined 
+                            && removeAccents(author.family).toLowerCase() == familyName.toLowerCase()) {
+                            publications.push(combinedDataElement);
+                            matchFound = true;
+                        }
+                        if (matchFound) {
+                            break;
+                        }
+                    }
+                    if (matchFound) {
+                        break;
+                    }
+                }
+                if (matchFound) {
+                    break;
+                }
+            }   
+        }
+    }
+    return publications;
 }
 
 /**
@@ -2681,9 +2760,15 @@ function handler() {
             let lowerCaseKeysParsedBibTeX = convertKeysToLowerCase(parsedBibTeX);
             console.log(lowerCaseKeysParsedBibTeX);
             
+            let combinedParsedData = getCombinedParsedData(lowerCaseKeysParsedBibTeX);
+            console.log(combinedParsedData);
+
             // group the data by year
             let bibTeXDataGroupedByYear = groupByYear(lowerCaseKeysParsedBibTeX, true, true);
             console.log(bibTeXDataGroupedByYear);
+
+            let publications = getPublications(["heiden"], ["eric"], combinedParsedData);
+            console.log(publications);
             
             // load the parsed and grouped content into a div on the page
             loadBibTeXContentDiv(bibTeXDataGroupedByYear);         
@@ -2702,8 +2787,50 @@ function readBibTeXDB(filename) {
     inputFile.send();
 }
 
+function publicationHandler(familyNames, givenNames) {
+    if (this.readyState === 4) {
+        if (this.status === 200 || this.status == 0) {
+            let allText = this.responseText;
+            // parse the file text
+            let parsedBibTeX = bibTeXParse.toJSON(allText);
+            
+            // convert all keys to lowercase to enable ease of access
+            let lowerCaseKeysParsedBibTeX = convertKeysToLowerCase(parsedBibTeX);
+            console.log(lowerCaseKeysParsedBibTeX);
+            
+            let combinedParsedData = getCombinedParsedData(lowerCaseKeysParsedBibTeX);
+            console.log(combinedParsedData);
+
+            // group the data by year
+            // let bibTeXDataGroupedByYear = groupByYear(lowerCaseKeysParsedBibTeX, true, true);
+            // console.log(bibTeXDataGroupedByYear);
+
+            let publications = getPublications(familyNames, givenNames, combinedParsedData);
+            console.log(publications);
+            
+            // load the parsed and grouped content into a div on the page
+            // loadBibTeXContentDiv(bibTeXDataGroupedByYear);       
+        }
+    }
+}
+
+function readAndLoadBibtexDB(familyNames, givenNames, filename) {
+    let inputFile = new XMLHttpRequest();
+    inputFile.open("GET", filename);
+    inputFile.onload = () => {
+        console.log(this.readyState);
+        publicationHandler(familyNames, givenNames);
+    }
+    inputFile.send();
+}
+
+function getPublicationsFor(familyNames, givenNames, filename) {
+    readAndLoadBibtexDB(familyNames, givenNames, filename)
+}
+
 window.onload = () => {
     readBibTeXDB(INPUT_FILENAME);
+    // getPublicationsFor(["heiden"], ["eric"], INPUT_FILENAME);
 }
 },{"bibtex-parse-js":110,"citation-js":112,"jquery":116,"remove-accents":118}],9:[function(require,module,exports){
 "use strict";
