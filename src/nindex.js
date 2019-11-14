@@ -5,10 +5,10 @@ const bibTeXParse = require('bibtex-parse-js');
 const Cite = require('citation-js');
 // remove accents
 const removeAccents = require('remove-accents');
-const $ = require('jquery');
 
 // CONSTANTS
 const INPUT_FILENAME = "sample.bib";
+// const INPUT_FILENAME = "https://sites.usc.edu/resl/files/2019/11/sample.bib";
 const NO_YEAR = "Others";
 const TITLE = "title";
 const AUTHOR = "author";
@@ -339,11 +339,59 @@ function loadBibTeXContentDiv(contentData) {
 }
 
 function loadBibTeXContentDivFiltered(publications, familyNames, givenNames) {
-    contentString = "<hr><h2>Filtered for " + JSON.stringify(familyNames) + ", " + JSON.stringify(givenNames) 
+    contentString = "<hr><h2>Filtered for Family Names: " + JSON.stringify(familyNames) 
+                    + " and Given Names: " + JSON.stringify(givenNames) 
                     + ":</h2>";
     contentString += "<ul>";
     for (let index = 0; index < publications.length; index++) {
-        contentString += "<li>" + JSON.stringify(publications[index][CITATION_JS]) + "</li>"
+        contentString += "<li>"
+        let bibTeXParseElement = publications[index][BIBTEX_PARSE_JS];
+        let bibTeXParseEntryTags = bibTeXParseElement.entrytags;
+        let citationsJSElement = publications[index][CITATION_JS];
+
+        if (citationsJSElement.author != undefined) {
+            if (Array.isArray(citationsJSElement.author)) {
+                citationsJSElement.author.forEach((author, index) => {
+                    if (citationsJSElement.author.length > 1 && (index == citationsJSElement.author.length - 1)) {
+                        contentString = contentString.substring(0, contentString.length - 2);
+                        contentString += " and ";
+                    }
+
+                    if (author.given != undefined || author.family != undefined) {
+                        if (author.given != undefined) {
+                            contentString += author.given + " ";
+                        }
+                        if (author.family != undefined) {
+                            contentString += author.family;
+                        }
+                        contentString += ", ";
+                    } else {
+                        if (author.literal != undefined) {
+                            contentString += author.literal + ", ";
+                        }
+                    }
+                });
+            } else {
+                contentString += citationsJSElement.author + ", "
+            }
+        }
+
+        if (citationsJSElement.title != undefined) {
+            contentString += citationsJSElement.title + ", ";
+        }
+
+        if (bibTeXParseEntryTags.year != undefined) {
+            contentString += bibTeXParseEntryTags.year + ", ";
+        }
+
+        if (bibTeXParseEntryTags.status != undefined) {
+            contentString += bibTeXParseEntryTags.status + ", ";
+        }
+        
+        contentString = contentString.substring(0, contentString.length - 2);
+        contentString += ".";
+
+        contentString += "</li>"
     }
     contentString += "</ul>";
     $(".bibtex-content").append(contentString);
@@ -452,8 +500,9 @@ function getPublicationsFor(familyNames, givenNames, filename) {
     readAndLoadBibtexDB(familyNames, givenNames, filename)
 }
 
+window.getPublicationsFor = getPublicationsFor;
+
 window.onload = () => {
     // readBibTeXDB(INPUT_FILENAME);
-    
-    getPublicationsFor(["heiden"], ["eric"], INPUT_FILENAME);
+    // getPublicationsFor(["heiden"], ["eric"], INPUT_FILENAME);
 }
