@@ -2730,6 +2730,10 @@ function loadBibTeXContentDiv(contentData) {
                 contentString += element.title + ", ";
             }
 
+            if (element.booktitle != undefined) {
+                contentString += "In " + element.booktitle + ", ";
+            }
+
             if (element.year != undefined) {
                 contentString += element.year + ", ";
             }
@@ -2789,6 +2793,10 @@ function loadBibTeXContentDivFiltered(publications, familyNames, givenNames) {
             contentString += citationsJSElement.title + ", ";
         }
 
+        if (citationsJSElement[CONTAINER_TITLE] != undefined) {
+            contentString += "In " + citationsJSElement[CONTAINER_TITLE] + ", ";
+        }
+
         if (bibTeXParseEntryTags.year != undefined) {
             contentString += bibTeXParseEntryTags.year + ", ";
         }
@@ -2804,77 +2812,6 @@ function loadBibTeXContentDivFiltered(publications, familyNames, givenNames) {
     }
     contentString += "</ul>";
     $(".bibtex-content").append(contentString);
-}
-
-/**
- * Function to handle the XMLHttpRequest called by readBibTeXDB function.
- */
-function handler() {
-    if (this.readyState === 4) {
-        if (this.status === 200 || this.status == 0) {
-            let allText = this.responseText;
-            // parse the file text
-            let parsedBibTeX = bibTeXParse.toJSON(allText);
-            
-            // convert all keys to lowercase to enable ease of access
-            let lowerCaseKeysParsedBibTeX = convertKeysToLowerCase(parsedBibTeX);
-            console.log(lowerCaseKeysParsedBibTeX);
-            
-            let combinedParsedData = getCombinedParsedData(lowerCaseKeysParsedBibTeX);
-            console.log(combinedParsedData);
-
-            // group the data by year
-            let bibTeXDataGroupedByYear = groupByYear(lowerCaseKeysParsedBibTeX, true, true);
-            console.log(bibTeXDataGroupedByYear);
-
-            let publications = getPublications(["heiden"], ["eric"], combinedParsedData);
-            console.log(publications);
-            
-            // load the parsed and grouped content into a div on the page
-            loadBibTeXContentDiv(bibTeXDataGroupedByYear);         
-        }
-    }
-}
-
-/**
- * Reads a BibTeX file (.bib) and parses it to produce result for the webpage.
- * @param {string} filename Filename string
- */
-function readBibTeXDB(filename) {
-    let inputFile = new XMLHttpRequest();
-    inputFile.open("GET", filename);
-    inputFile.onload = handler;
-    inputFile.send();
-}
-
-function publicationHandler(familyNames, givenNames, inputFile) {
-    console.log(inputFile);
-    if (inputFile.readyState === 4) {
-        if (inputFile.status === 200 || inputFile.status === 0) {
-            let allText = inputFile.responseText;
-            // parse the file text
-            let parsedBibTeX = bibTeXParse.toJSON(allText);
-            
-            // convert all keys to lowercase to enable ease of access
-            let lowerCaseKeysParsedBibTeX = convertKeysToLowerCase(parsedBibTeX);
-            console.log(lowerCaseKeysParsedBibTeX);
-            
-            let combinedParsedData = getCombinedParsedData(lowerCaseKeysParsedBibTeX);
-            console.log(combinedParsedData);
-
-            // group the data by year
-            let bibTeXDataGroupedByYear = groupByYear(lowerCaseKeysParsedBibTeX, true, true);
-            console.log(bibTeXDataGroupedByYear);
-            
-            // load the parsed and grouped content into a div on the page
-            loadBibTeXContentDiv(bibTeXDataGroupedByYear);    
-            
-            let publications = getPublications(familyNames, givenNames, combinedParsedData);
-            console.log(publications);
-
-
-        }
-    }
 }
 
 function readAndLoadBibtexDB(familyNames, givenNames, filename) {
