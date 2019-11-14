@@ -8,7 +8,7 @@ const removeAccents = require('remove-accents');
 const $ = require('jquery');
 
 // CONSTANTS
-const INPUT_FILENAME = "https://sites.usc.edu/resl/files/2019/11/sample.bib";
+const INPUT_FILENAME = "sample.bib";
 const NO_YEAR = "Others";
 const TITLE = "title";
 const AUTHOR = "author";
@@ -333,8 +333,20 @@ function loadBibTeXContentDiv(contentData) {
             contentString += ".";
             contentString += "</li>";
         });
+        contentString += "</ul>";
         $(".bibtex-content").append(contentString);
     }
+}
+
+function loadBibTeXContentDivFiltered(publications, familyNames, givenNames) {
+    contentString = "<hr><h2>Filtered for " + JSON.stringify(familyNames) + ", " + JSON.stringify(givenNames) 
+                    + ":</h2>";
+    contentString += "<ul>";
+    for (let index = 0; index < publications.length; index++) {
+        contentString += "<li>" + JSON.stringify(publications[index][CITATION_JS]) + "</li>"
+    }
+    contentString += "</ul>";
+    $(".bibtex-content").append(contentString);
 }
 
 /**
@@ -378,10 +390,11 @@ function readBibTeXDB(filename) {
     inputFile.send();
 }
 
-function publicationHandler(familyNames, givenNames) {
-    if (this.readyState === 4) {
-        if (this.status === 200 || this.status == 0) {
-            let allText = this.responseText;
+function publicationHandler(familyNames, givenNames, inputFile) {
+    console.log(inputFile);
+    if (inputFile.readyState === 4) {
+        if (inputFile.status === 200 || inputFile.status === 0) {
+            let allText = inputFile.responseText;
             // parse the file text
             let parsedBibTeX = bibTeXParse.toJSON(allText);
             
@@ -393,26 +406,46 @@ function publicationHandler(familyNames, givenNames) {
             console.log(combinedParsedData);
 
             // group the data by year
-            // let bibTeXDataGroupedByYear = groupByYear(lowerCaseKeysParsedBibTeX, true, true);
-            // console.log(bibTeXDataGroupedByYear);
-
-            let publications = getPublications(familyNames, givenNames, combinedParsedData);
-            console.log(publications);
+            let bibTeXDataGroupedByYear = groupByYear(lowerCaseKeysParsedBibTeX, true, true);
+            console.log(bibTeXDataGroupedByYear);
             
             // load the parsed and grouped content into a div on the page
-            // loadBibTeXContentDiv(bibTeXDataGroupedByYear);       
+            loadBibTeXContentDiv(bibTeXDataGroupedByYear);    
+            
+            let publications = getPublications(familyNames, givenNames, combinedParsedData);
+            console.log(publications);
+
+
         }
     }
 }
 
 function readAndLoadBibtexDB(familyNames, givenNames, filename) {
-    let inputFile = new XMLHttpRequest();
-    inputFile.open("GET", filename);
-    inputFile.onload = () => {
-        console.log(this.readyState);
-        publicationHandler(familyNames, givenNames);
-    }
-    inputFile.send();
+    fetch(filename).then((response) => {
+        response.text().then((allText) => {
+            // parse the file text
+            let parsedBibTeX = bibTeXParse.toJSON(allText);
+            
+            // convert all keys to lowercase to enable ease of access
+            let lowerCaseKeysParsedBibTeX = convertKeysToLowerCase(parsedBibTeX);
+            console.log(lowerCaseKeysParsedBibTeX);
+            
+            let combinedParsedData = getCombinedParsedData(lowerCaseKeysParsedBibTeX);
+            console.log(combinedParsedData);
+
+            // group the data by year
+            let bibTeXDataGroupedByYear = groupByYear(lowerCaseKeysParsedBibTeX, true, true);
+            console.log(bibTeXDataGroupedByYear);
+            
+            // load the parsed and grouped content into a div on the page
+            loadBibTeXContentDiv(bibTeXDataGroupedByYear); 
+
+            let publications = getPublications(familyNames, givenNames, combinedParsedData);
+            console.log(publications);
+
+            loadBibTeXContentDivFiltered(publications, familyNames, givenNames);
+        })
+    })
 }
 
 function getPublicationsFor(familyNames, givenNames, filename) {
@@ -420,6 +453,7 @@ function getPublicationsFor(familyNames, givenNames, filename) {
 }
 
 window.onload = () => {
-    readBibTeXDB(INPUT_FILENAME);
-    // getPublicationsFor(["heiden"], ["eric"], INPUT_FILENAME);
+    // readBibTeXDB(INPUT_FILENAME);
+    
+    getPublicationsFor(["heiden"], ["eric"], INPUT_FILENAME);
 }
