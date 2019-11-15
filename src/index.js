@@ -2415,6 +2415,20 @@ const Cite = require('citation-js');
 // remove accents
 const removeAccents = require('remove-accents');
 
+/**
+ * todo: Complete the following flows:
+ * 1. parseBibTeX using bibtex-parse-js. [DONE]
+ * 2. Convert keys to lowercase. [DONE]
+ * 2. Combine parsed data with citation-js data. [DONE]
+ * 3. If author's view then filter the author's citation else do nothing. [IN-PROGRESS]
+ *      --> Take care of non-dropping-particle: "de" [DONE]
+ * 4. Group by year and publication type. [AWAITING]
+ * 5. Display the papers by sorting them in descending order of year followed by non-year papers. [AWAITING]
+ * # Also need to take care of professor's view where the `under-review` or `accepted` papers are shown.
+ * # Also omit `status` or `type` tags from displayed citation.
+ * # Refer: https://www2.cs.arizona.edu/~collberg/Teaching/07.231/BibTeX/bibtex.html for standard tags.
+ */
+
 // CONSTANTS
 const INPUT_FILENAME = "sample.bib";
 // const INPUT_FILENAME = "https://sites.usc.edu/resl/files/2019/11/sample.bib";
@@ -2422,12 +2436,13 @@ const NO_YEAR = "Others";
 const TITLE = "title";
 const AUTHOR = "author";
 const BOOKTITLE = "booktitle";
-const CONTAINER_TITLE = "container-title"
+const CONTAINER_TITLE = "container-title";
 const YEAR = "year";
 const STATUS = "status";
-const TYPE = "type"
-const CITATION_JS = "citationjs"
-const BIBTEX_PARSE_JS = "bibtexparsejs"
+const TYPE = "type";
+const NON_DROPPING_PARTICLE = "non-dropping-particle";
+const CITATION_JS = "citationjs";
+const BIBTEX_PARSE_JS = "bibtexparsejs";
 
 const JOURNAL = "journal";
 const BOOK = "book";
@@ -2448,6 +2463,23 @@ const CATEGORY_HEADINGS = {
     "under-review": "Under Review",
     "accepted": "Accepted"
 };
+
+const CATEGORY_MAPPING = {
+    "article": "journal",
+    "book": "book",
+    "booklet": "book",
+    "conference": "conference",
+    "inbook": "book",
+    "incollection": "conference",
+    "inproceedings": "conference",
+    "manual": "techreport",
+    "mastersthesis": "mastersthesis",
+    "misc": "conference", // Assumption
+    "phdthesis": "phdthesis",
+    "proceedings": "conference",
+    "techreport": "techreport",
+    "unpublished": "under-review"
+}
 
 /**
  * Takes a json object and returns a json object with lowercased keys.
@@ -2494,21 +2526,6 @@ function getBibTeXStringFromBibtexParseJSON(bibtexParseJSON) {
     return bibtexString;
 }
 
-function getBibTeXStringFromBibtexParseJSONArray(bibtexParseJSONArray) {
-    let bibtexString = '';
-    for (let index = 0; index < bibtexParseJSONArray.length; index++) {
-        bibtexParseJSON = bibtexParseJSONArray[index]
-        bibtexString += '@' + bibtexParseJSON.entrytype + '{';
-        bibtexString += bibtexParseJSON.citationkey + ',\n';
-        for (let key in bibtexParseJSON.entrytags) {
-            value = bibtexParseJSON.entrytags[key];
-            bibtexString += "    " + key + "=" + '{' + value + "},\n" ;
-        }
-        bibtexString += '}\n';
-    }
-    return bibtexString;
-}
-
 function getCombinedParsedData(bibtexParseJSData) {
     let combinedParsedData = [];
     let citeOptions = {
@@ -2527,6 +2544,7 @@ function getCombinedParsedData(bibtexParseJSData) {
     }
     return combinedParsedData
 }
+
 /**
  * 
  * @param {Array} familyNames 
@@ -2543,17 +2561,43 @@ function getPublications(familyNames, givenNames, combinedParsedData) {
         let authors = citationJSElement.author;
         if (authors != undefined) {
             for (let f = 0; f < familyNames.length; f++) {
-                familyName = familyNames[f];
+                let familyName = familyNames[f];
                 for (let g = 0; g < givenNames.length; g++) {
-                    givenName = givenNames[g];
+                    let givenName = givenNames[g];
                     for (let a = 0; a < authors.length; a++) {
                         author = authors[a];
-                        if (author.given != undefined 
-                            && removeAccents(author.given).toLowerCase() == givenName.toLowerCase() 
-                            && author.family != undefined 
-                            && removeAccents(author.family).toLowerCase() == familyName.toLowerCase()) {
+                        let authorGivenName = author.given;
+                        let authorFamilyName = author.family;
+                        let authorLiteral = author.literal;
+                        if (author[NON_DROPPING_PARTICLE] != undefined) {
+                            authorFamilyName += author[NON_DROPPING_PARTICLE] + " " + authorFamilyName;
+                        }
+                        if (authorGivenName != undefined 
+                            && removeAccents(authorGivenName).toLowerCase() == givenName.toLowerCase() 
+                            && authorFamilyName != undefined 
+                            && removeAccents(authorFamilyName).toLowerCase() == familyName.toLowerCase()) {
+                            // Comparison with given and family name.
                             publications.push(combinedDataElement);
                             matchFound = true;
+                        } else if (authorGivenName == undefined 
+                            && authorFamilyName != undefined
+                            && removeAccents(authorFamilyName).toLowerCase() == familyName.toLowerCase()) {
+                            // If the author only has a family name and no given name, it will be counted as a family
+                            // name and hence the comparison with family name.
+                            publications.push(combinedDataElement);
+                            matchFound = true; 
+                        } else if (authorGivenName != undefined 
+                            && removeAccents(authorGivenName).toLowerCase() == familyName.toLowerCase() 
+                            && authorFamilyName == undefined) {
+                            // If the author only has a given name and no family name, it will be counted as a family
+                            // name and hence the comparison with family name.
+                            publications.push(combinedDataElement);
+                            matchFound = true;
+                        } else if (authorLiteral != undefined) {
+                            processedAuthorLiteral = removeAccents(authorLiteral).toLowerCase();
+                            // (X) DOUBT.
+                            // to be implemented.
+                            // occurs only when authors are not formatted properly.
                         }
                         if (matchFound) {
                             break;
@@ -2751,6 +2795,7 @@ function loadBibTeXContentDiv(contentData) {
                             contentString += ", ";
                         } else {
                             if (author.literal != undefined) {
+                                console.log(author.literal);
                                 contentString += author.literal + ", ";
                             }
                         }
@@ -2934,10 +2979,6 @@ function getPublicationsFor(familyNames, givenNames, filename) {
 
 window.getPublicationsFor = getPublicationsFor;
 
-window.onload = () => {
-    // readBibTeXDB(INPUT_FILENAME);
-    // getPublicationsFor(["heiden"], ["eric"], INPUT_FILENAME);
-}
 },{"bibtex-parse-js":110,"citation-js":112,"remove-accents":117}],9:[function(require,module,exports){
 "use strict";
 
