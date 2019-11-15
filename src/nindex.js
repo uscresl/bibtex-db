@@ -20,6 +20,26 @@ const TYPE = "type"
 const CITATION_JS = "citationjs"
 const BIBTEX_PARSE_JS = "bibtexparsejs"
 
+const JOURNAL = "journal";
+const BOOK = "book";
+const CONFERENCE = "conference";
+const TECH_REPORT = "techreport";
+const MASTERS_THESIS = "mastersthesis";
+const PHD_THESIS = "phdthesis";
+const UNDER_REVIEW = "under-review";
+const ACCEPTED = "accepted";
+
+const CATEGORY_HEADINGS = {
+    "journal": "Journal Papers",
+    "book": "Books",
+    "conference": "Conference Papers",
+    "techreport": "Tech Reports",
+    "mastersthesis": "Master's Thesis",
+    "phdthesis": "Ph.D. Thesis",
+    "under-review": "Under Review",
+    "accepted": "Accepted"
+};
+
 /**
  * Takes a json object and returns a json object with lowercased keys.
  * @param {object} jsonInput Object
@@ -191,7 +211,8 @@ function groupByYear(bibtexParseJSData, includeUnderReview, includeAccepted) {
             }
 
             // initializing citation object
-            let citation = {}
+            let citation = {};
+            citation["combined"] = {"bibtexparsejs": element, "citationjs": citationJSElement};
             // add a title to citation object
             if (citationJSElement.title != undefined) {
                 citation[TITLE] = citationJSElement.title;
@@ -234,6 +255,7 @@ function groupByYear(bibtexParseJSData, includeUnderReview, includeAccepted) {
 
             // initializing citation object
             let citation = {}
+            citation["combined"] = {"bibtexparsejs": element, "citationjs": citationJSElement};
             // add a title to citation object
             if (citationJSElement.title != undefined) {
                 citation[TITLE] = citationJSElement.title;
@@ -277,6 +299,18 @@ function groupByYear(bibtexParseJSData, includeUnderReview, includeAccepted) {
     }
 
     return bibTeXDataGroupedByYear;
+}
+
+function getCitationContent(bibTeXParseJSElement) {
+    let citationContent = '';
+    citationContent += '@' + bibTeXParseJSElement.entrytype.toLowerCase() + '{';
+    citationContent += bibTeXParseJSElement.citationkey + ',';
+    for (let key in bibTeXParseJSElement.entrytags) {
+        value = bibTeXParseJSElement.entrytags[key];
+        citationContent += "<br>&nbsp;&nbsp;&nbsp;&nbsp;" + key + "=" + '{' + value + "}," ;
+    }
+    citationContent += '<br>}';
+    return citationContent;
 }
 
 /**
@@ -335,7 +369,34 @@ function loadBibTeXContentDiv(contentData) {
             
             contentString = contentString.substring(0, contentString.length - 2);
             contentString += ".";
-            contentString += "</li>";
+            let bibTeXParseElement = element["combined"]["bibtexparsejs"];
+            let citationKey = bibTeXParseElement.citationkey 
+                                + Math.random().toString(36).substring(2,15);
+            contentString += `<button style="background-color: #880000; margin-left: 1vw;
+                                                    padding-left: 15px; padding-right: 15px;
+                                                    color: white; border: none; border-radius: 5px;"
+                                id="button-${citationKey}"
+                                class="button-${citationKey}">Show Citation</button>`;
+            contentString += `<div id="citation-${citationKey}"
+                                class="citation-${citationKey}"
+                                style="background-color: #e8e8e8; padding: 5px; margin: 5px; color: black;
+                                        border-radius: 5px; font-size: 11px; display: none;
+                                        font-family: 'Courier New', Courier, monospace;">
+                                    ${getCitationContent(bibTeXParseElement)}
+                                </div>`;
+            contentString += "</div>";
+            contentString += ""
+            contentString += `<script>
+                                    $(".button-${citationKey}").click(() => {
+                                        $(".citation-${citationKey}").toggle();
+                                        if ($(".citation-${citationKey}").is(":visible")) {
+                                            $(".button-${citationKey}").html("Hide Citation");
+                                        } else {
+                                            $(".button-${citationKey}").html("Show Citation");
+                                        }
+                                    });
+                                </script>`
+                contentString += "</li>";
         });
         contentString += "</ul>";
         $(".bibtex-content").append(contentString);
@@ -398,7 +459,32 @@ function loadBibTeXContentDivFiltered(publications, familyNames, givenNames) {
         
         contentString = contentString.substring(0, contentString.length - 2);
         contentString += ".";
-
+        let citationKey = bibTeXParseElement.citationkey 
+                                + Math.random().toString(36).substring(2,15);
+        contentString += `<button style="background-color: #880000; margin-left: 1vw;
+                                                padding-left: 15px; padding-right: 15px;
+                                                color: white; border: none; border-radius: 5px;"
+                            id="button-${citationKey}"
+                            class="button-${citationKey}">Show Citation</button>`;
+        contentString += `<div id="citation-${citationKey}"
+                            class="citation-${citationKey}"
+                            style="background-color: #e8e8e8; padding: 5px; margin: 5px; color: black;
+                                        border-radius: 5px; font-size: 11px; display: none;
+                                        font-family: 'Courier New', Courier, monospace;">
+                                ${getCitationContent(bibTeXParseElement)}
+                            </div>`;
+        contentString += "</div>";
+        contentString += ""
+        contentString += `<script>
+                                $(".button-${citationKey}").click(() => {
+                                    $(".citation-${citationKey}").toggle();
+                                    if ($(".citation-${citationKey}").is(":visible")) {
+                                        $(".button-${citationKey}").html("Hide Citation");
+                                    } else {
+                                        $(".button-${citationKey}").html("Show Citation");
+                                    }
+                                });
+                            </script>`
         contentString += "</li>"
     }
     contentString += "</ul>";
