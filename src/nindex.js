@@ -536,6 +536,33 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType) {
 
                     contentString = contentString.substring(0, contentString.length - 2);
                     contentString += `.`;
+
+                    let citationKey = bibTeXParseJSElement.citationkey 
+                                        + Math.random().toString(36).substring(2,15);
+                    contentString += `<button style="background-color: #880000; margin-left: 1vw;
+                                                            padding-left: 15px; padding-right: 15px;
+                                                            color: white; border: none; border-radius: 5px;"
+                                        id="button-${citationKey}"
+                                        class="button-${citationKey}">Show Citation</button>`;
+                    contentString += `<div id="citation-${citationKey}"
+                                        class="citation-${citationKey}"
+                                        style="background-color: #e8e8e8; padding: 5px; margin: 5px; color: black;
+                                                    border-radius: 5px; font-size: 11px; display: none;
+                                                    font-family: 'Courier New', Courier, monospace;">
+                                            ${getCitationContent(bibTeXParseJSElement)}
+                                        </div>`;
+                    contentString += "</div>";
+                    contentString += ""
+                    contentString += `<script>
+                                            $(".button-${citationKey}").click(() => {
+                                                $(".citation-${citationKey}").toggle();
+                                                if ($(".citation-${citationKey}").is(":visible")) {
+                                                    $(".button-${citationKey}").html("Hide Citation");
+                                                } else {
+                                                    $(".button-${citationKey}").html("Show Citation");
+                                                }
+                                            });
+                                        </script>`
                     contentString += `</li>`;
                 }
                 contentString += `</ul>`
@@ -731,7 +758,7 @@ function loadBibTeXContentDivFiltered(publications, familyNames, givenNames) {
     $(".bibtex-content").append(contentString);
 }
 
-function readAndLoadBibtexDB(familyNames, givenNames, filename) {
+function readAndLoadBibtexDBFor(familyNames, givenNames, filename) {
     fetch(filename).then((response) => {
         response.text().then((allText) => {
             try {
@@ -745,33 +772,55 @@ function readAndLoadBibtexDB(familyNames, givenNames, filename) {
                 let combinedParsedData = getCombinedParsedData(lowerCaseKeysParsedBibTeX);
                 console.log(combinedParsedData);
 
-                // group the data by year
-                let bibTeXDataGroupedByYear = groupByYear(lowerCaseKeysParsedBibTeX, true, true);
-                console.log(bibTeXDataGroupedByYear);
-                
-                let bibTeXDataGroupedByYearAndType = groupPublicationsByYearAndType(combinedParsedData, true);
-                console.log(bibTeXDataGroupedByYearAndType);
-                console.log(getReversedSortedKeys(bibTeXDataGroupedByYearAndType));
-
-                // load the parsed and grouped content into a div on the page
-                // loadBibTeXContentDiv(bibTeXDataGroupedByYear);
-                loadBibTeXContentDivFromData(bibTeXDataGroupedByYearAndType);
-
                 let publications = getPublications(familyNames, givenNames, combinedParsedData);
                 console.log(publications);
+                
                 let publicationsGroupedByYearAndType = groupPublicationsByYearAndType(publications);
+                
                 loadBibTeXContentDivFromData(publicationsGroupedByYearAndType);
-                // loadBibTeXContentDivFiltered(publications, familyNames, givenNames);
             } catch (error) {
                 console.log(error);
                 $(".bibtex-content").append("BibTeX file parsing or internal error.");
             }
-        })
-    })
+        });
+    });
+}
+
+function readAndLoadAllBibtexDB(filename) {
+    fetch(filename).then((response) => {
+        response.text().then((allText) => {
+            try {
+                // parse the file text
+                let parsedBibTeX = bibTeXParse.toJSON(allText);
+                
+                // convert all keys to lowercase to enable ease of access.
+                let lowerCaseKeysParsedBibTeX = convertKeysToLowerCase(parsedBibTeX);
+                console.log(lowerCaseKeysParsedBibTeX);
+                
+                let combinedParsedData = getCombinedParsedData(lowerCaseKeysParsedBibTeX);
+                console.log(combinedParsedData);
+
+                // group the data by year and type.
+                let bibTeXDataGroupedByYearAndType = groupPublicationsByYearAndType(combinedParsedData, true);
+                console.log(bibTeXDataGroupedByYearAndType);
+
+                // load the parsed and grouped content into a div on the page.
+                loadBibTeXContentDivFromData(bibTeXDataGroupedByYearAndType);
+            } catch (error) {
+                console.log(error);
+                $(".bibtex-content").append("BibTeX file parsing or internal error.");
+            }
+        });
+    });
 }
 
 function getPublicationsFor(familyNames, givenNames, filename) {
-    readAndLoadBibtexDB(familyNames, givenNames, filename)
+    readAndLoadBibtexDBFor(familyNames, givenNames, filename);
+}
+
+function getAllPublications(filename) {
+    readAndLoadAllBibtexDB(filename);
 }
 
 window.getPublicationsFor = getPublicationsFor;
+window.getAllPublications = getAllPublications;
