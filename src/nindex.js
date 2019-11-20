@@ -23,7 +23,7 @@ const removeAccents = require('remove-accents');
 // CONSTANTS
 const INPUT_FILENAME = "sample.bib";
 // const INPUT_FILENAME = "https://sites.usc.edu/resl/files/2019/11/sample.bib";
-const NO_YEAR = "Others";
+const NO_YEAR = "Other";
 const TITLE = "title";
 const AUTHOR = "author";
 const BOOKTITLE = "booktitle";
@@ -41,18 +41,22 @@ const CONFERENCE = "conference";
 const TECH_REPORT = "techreport";
 const MASTERS_THESIS = "mastersthesis";
 const PHD_THESIS = "phdthesis";
-const _MISC = "_misc"
 const UNDER_REVIEW = "under-review";
+const WORKSHOP = "workshop";
+const ABSTRACT = "abstract";
+const PREPRINT = "preprint";
 const ACCEPTED = "accepted";
 
 const CATEGORY_HEADINGS = {
     "journal": "Journal Papers",
     "book": "Books",
+    "workshop": "Workshop Articles",
+    "abstract": "Abstracts",
+    "preprint": "Preprints",
     "conference": "Conference Papers",
     "techreport": "Tech Reports",
     "mastersthesis": "Master's Thesis",
     "phdthesis": "Ph.D. Thesis",
-    "_misc": "Miscellaneous",
     "under-review": "Under Review",
     "accepted": "Accepted"
 };
@@ -73,6 +77,9 @@ const CATEGORY_MAPPING = {
     "techreport": "techreport",
     "unpublished": "under-review"
 }
+
+const CATEGORY_ORDERING = [PHD_THESIS, MASTERS_THESIS, JOURNAL, BOOK, CONFERENCE, WORKSHOP, ABSTRACT, PREPRINT, 
+                            TECH_REPORT];
 
 /**
  * Takes a json object and returns a json object with lowercased keys.
@@ -209,7 +216,7 @@ function getPublications(familyNames, givenNames, combinedParsedData) {
     return publications;
 }
 
-function groupPublicationsByYearAndType(parsedPublications, includeUnderReview, includeAccepted) {
+function groupPublicationsByYearAndType(parsedPublications, includeUnderReview) {
     let publicationsGroupedByYearAndType = {};
     for (let index = 0; index < parsedPublications.length; index++) {
         let publication = parsedPublications[index]
@@ -220,7 +227,7 @@ function groupPublicationsByYearAndType(parsedPublications, includeUnderReview, 
         // Check if under-review or accepted papers are to be included
         if (bibTeXParseEntryTags.status != undefined) {
             let status = bibTeXParseEntryTags.status;
-            if ((!includeUnderReview && status == UNDER_REVIEW) || (!includeAccepted && status == ACCEPTED)) {
+            if (!includeUnderReview && status == UNDER_REVIEW) {
                 continue;
             }
         }
@@ -237,15 +244,26 @@ function groupPublicationsByYearAndType(parsedPublications, includeUnderReview, 
         }
 
         let entrytype = ""
+        // if (bibTeXParseEntryTags.type == undefined) {        
+        
+        // Find the type of the publication.
         if (bibTeXParseElement.entrytype == undefined) {
-            entrytype = MISC;
+            // default: CONFERENCE.
+            entrytype = CONFERENCE;
         } else {
             if (CATEGORY_MAPPING[bibTeXParseElement.entrytype.toLowerCase()] == undefined) {
-                entrytype = MISC;
+                // default: CONFERENCE.
+                entrytype = CONFERENCE;
             } else {
+                // assign the type if it's present in the CATEGORY_MAPPING.
                 entrytype = CATEGORY_MAPPING[bibTeXParseElement.entrytype.toLowerCase()];
             }
         }
+        
+        // } else {
+        //     // if a field 'type' tag is provided, it overrides the entrytype.
+        //     entrytype = bibTeXParseEntryTags.type;
+        // }
 
         if (publicationsGroupedByYearAndType[year][entrytype] == undefined) {
             publicationsGroupedByYearAndType[year][entrytype] = [];
@@ -406,6 +424,124 @@ function getCitationContent(bibTeXParseJSElement) {
     }
     citationContent += '<br>}';
     return citationContent;
+}
+
+function getReversedSortedKeys(object) {
+    let keys = [];
+    for (let key in object) {
+        keys.push(key);
+    }
+    keys.sort();
+    return keys.reverse();
+}
+
+function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType) {
+    let others = undefined;
+
+    let reversedKeys = getReversedSortedKeys(publicationsGroupedByYearAndType);
+    for (let index = 0; index < reversedKeys.length; index++) {
+        let contentString = "";
+        let year = reversedKeys[index];
+        
+        contentString += `<h2>${year}</h2>`;
+        let publicationsForYear = publicationsGroupedByYearAndType[year];
+        for (let categoryIndex = 0; categoryIndex < CATEGORY_ORDERING.length; categoryIndex++) {
+            let category = CATEGORY_ORDERING[categoryIndex];
+            if (publicationsForYear[category] != undefined) {
+                contentString += `<h3>&nbsp;&nbsp;${CATEGORY_HEADINGS[category]}</h3>`;
+
+                contentString += `<ul>`;
+                let publicationsForCategory = publicationsForYear[category];
+                for (let publicationIndex = 0; publicationIndex < publicationsForCategory.length; publicationIndex++) {
+                    contentString += `<li>`;
+                    
+                    publication = publicationsForCategory[publicationIndex];
+                    
+                    let bibTeXParseJSElement = publication[BIBTEX_PARSE_JS];
+                    let bibTeXParseEntryTags = bibTeXParseJSElement.entrytags;
+                    let citationJSElement = publication[CITATION_JS];
+                    
+                    // Authors are handled below.
+                    let citationJSAuthors = citationJSElement[AUTHOR];
+                    let bibTeXParseJSAuthors = bibTeXParseEntryTags[AUTHOR];
+                    if (citationJSAuthors != undefined) {
+                        for (let authorIndex = 0; authorIndex < citationJSAuthors.length; authorIndex++) {
+                            let author = citationJSAuthors[authorIndex];
+                            if (authorIndex == citationJSAuthors.length - 1 && citationJSAuthors.length > 1) {
+                                contentString += `and `;
+                            }
+                            if (author.literal == undefined) {
+                                if (author.given != undefined && author.family != undefined) {
+                                    if (author[NON_DROPPING_PARTICLE] != undefined) {
+                                        contentString += `${author.given} ${author[NON_DROPPING_PARTICLE]} 
+                                                            ${author.family}, `;
+                                    } else {
+                                        contentString += `${author.given} ${author.family}, `;
+                                    }
+                                    
+                                } else if (author.given != undefined) {
+                                    contentString += `${author.given}, `;
+                                } else if (author.family != undefined) {
+                                    if (author[NON_DROPPING_PARTICLE] != undefined) {
+                                        contentString += `${author[NON_DROPPING_PARTICLE]} ${author.family}, `;
+                                    } else {
+                                        contentString += `${author.family}, `;
+                                    }
+                                }
+                            } else {
+                                contentString += `${author.literal}, `;
+                            }
+                        }
+                    } else if (bibTeXParseJSAuthors != undefined) {
+                        contentString += `${bibTeXParseJSAuthors}, `;
+                    }
+
+                    // Title is handled below.
+                    if (citationJSElement[TITLE] != undefined) {
+                        contentString += `${citationJSElement[TITLE]}`;
+                    } else if (bibTeXParseEntryTags[TITLE] != undefined) {
+                        contentString += `${bibTeXParseEntryTags[TITLE]}`;
+                    }
+
+                    // Conference/journal name is handled below.
+                    if (citationJSElement[CONTAINER_TITLE] != undefined) {
+                        if (bibTeXParseEntryTags[TYPE] != undefined && bibTeXParseEntryTags[TYPE] == UNDER_REVIEW) {
+                            contentString += `Under review at `;
+                        } else {
+                            contentString += `In `;
+                        }
+                        contentString += `${citationJSElement[CONTAINER_TITLE]}, `;
+                    } else if (bibTeXParseEntryTags[JOURNAL] != undefined) {
+                        if (bibTeXParseEntryTags[TYPE] != undefined && bibTeXParseEntryTags[TYPE] == UNDER_REVIEW) {
+                            contentString += `Under review at `;
+                        } else {
+                            contentString += `In `;
+                        }
+                        contentString += `${bibTeXParseEntryTags[JOURNAL]}, `;
+                    }
+
+                    // Year is handled here.
+                    if (bibTeXParseEntryTags[YEAR] != undefined) {
+                        contentString += `${bibTeXParseEntryTags[YEAR]}, `;
+                    }
+
+                    contentString = contentString.substring(0, contentString.length - 2);
+                    contentString += `.`;
+                    contentString += `</li>`;
+                }
+                contentString += `</ul>`
+            }
+        }
+        // handle the case of other publications after all the years
+        if (year == NO_YEAR) {
+            others = contentString;
+        } else {
+            $(".bibtex-content").append(contentString);
+        }
+    }
+    if (others != undefined) {
+        $(".bibtex-content").append(others);
+    }
 }
 
 /**
@@ -603,11 +739,13 @@ function readAndLoadBibtexDB(familyNames, givenNames, filename) {
             let bibTeXDataGroupedByYear = groupByYear(lowerCaseKeysParsedBibTeX, true, true);
             console.log(bibTeXDataGroupedByYear);
             
-            let bibTeXDataGroupedByYearAndType = groupPublicationsByYearAndType(combinedParsedData, true, true);
+            let bibTeXDataGroupedByYearAndType = groupPublicationsByYearAndType(combinedParsedData, true);
             console.log(bibTeXDataGroupedByYearAndType);
+            console.log(getReversedSortedKeys(bibTeXDataGroupedByYearAndType));
 
             // load the parsed and grouped content into a div on the page
-            loadBibTeXContentDiv(bibTeXDataGroupedByYear); 
+            // loadBibTeXContentDiv(bibTeXDataGroupedByYear);
+            loadBibTeXContentDivFromData(bibTeXDataGroupedByYearAndType);
 
             let publications = getPublications(familyNames, givenNames, combinedParsedData);
             console.log(publications);
