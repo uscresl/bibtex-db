@@ -2851,7 +2851,7 @@ function getReversedSortedKeys(object) {
     return keys.reverse();
 }
 
-function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType) {
+function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass) {
     let others = undefined;
 
     let reversedKeys = getReversedSortedKeys(publicationsGroupedByYearAndType);
@@ -2981,11 +2981,11 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType) {
         if (year == NO_YEAR) {
             others = contentString;
         } else {
-            $(".bibtex-content").append(contentString);
+            $("." + divClass).append(contentString);
         }
     }
     if (others != undefined) {
-        $(".bibtex-content").append(others);
+        $("." + divClass).append(others);
     }
 }
 
@@ -3167,7 +3167,7 @@ function loadBibTeXContentDivFiltered(publications, familyNames, givenNames) {
     $(".bibtex-content").append(contentString);
 }
 
-function readAndLoadBibtexDBFor(familyNames, givenNames, filename) {
+function readAndLoadBibtexDBFor(familyNames, givenNames, filename, divClass) {
     fetch(filename).then((response) => {
         response.text().then((allText) => {
             try {
@@ -3186,7 +3186,7 @@ function readAndLoadBibtexDBFor(familyNames, givenNames, filename) {
                 
                 let publicationsGroupedByYearAndType = groupPublicationsByYearAndType(publications);
                 
-                loadBibTeXContentDivFromData(publicationsGroupedByYearAndType);
+                loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass);
             } catch (error) {
                 console.log(error);
                 $(".bibtex-content").append("BibTeX file parsing or internal error.");
@@ -3195,7 +3195,7 @@ function readAndLoadBibtexDBFor(familyNames, givenNames, filename) {
     });
 }
 
-function readAndLoadAllBibtexDB(filename) {
+function readAndLoadAllBibtexDB(filename, divClass) {
     fetch(filename).then((response) => {
         response.text().then((allText) => {
             try {
@@ -3214,7 +3214,7 @@ function readAndLoadAllBibtexDB(filename) {
                 console.log(bibTeXDataGroupedByYearAndType);
 
                 // load the parsed and grouped content into a div on the page.
-                loadBibTeXContentDivFromData(bibTeXDataGroupedByYearAndType);
+                loadBibTeXContentDivFromData(bibTeXDataGroupedByYearAndType, divClass);
             } catch (error) {
                 console.log(error);
                 $(".bibtex-content").append("BibTeX file parsing or internal error.");
@@ -3223,12 +3223,12 @@ function readAndLoadAllBibtexDB(filename) {
     });
 }
 
-function getPublicationsFor(familyNames, givenNames, filename) {
-    readAndLoadBibtexDBFor(familyNames, givenNames, filename);
+function getPublicationsFor(familyNames, givenNames, filename, divClass) {
+    readAndLoadBibtexDBFor(familyNames, givenNames, filename, divClass);
 }
 
-function getAllPublications(filename) {
-    readAndLoadAllBibtexDB(filename);
+function getAllPublications(filename, divClass) {
+    readAndLoadAllBibtexDB(filename, divClass);
 }
 
 window.getPublicationsFor = getPublicationsFor;

@@ -15,38 +15,19 @@
 <body>
     <h1>BibTeX Parser</h1>
     <hr>
-    <!-- Some authors, some title, some journal, some year.
-    <button title="MAGIC!" id="magic-button" class="magic-button" style="background-color: #880000; padding: 5px;
-                    padding-left: 15px; padding-right: 15px; margin-left: 1vw;
-                    color: white; border: none; border-radius: 5px;">Show Citation</button> 
-    <div id='citation' class='citation' style="background-color: #e8e8e8; padding: 5px; margin: 5px; 
-                                border-radius: 5px; font-size: 11px; display: none;"></div>
-    <script>
-        let citation = "@incollection{wehr2018lidar,"
-                        + "<br>&nbsp;&nbsp;title={LiDAR systems and calibration},"
-                        + "<br>&nbsp;&nbsp;author={Wehr, Aloysius},"
-                        + "<br>&nbsp;&nbsp;booktitle={Topographic laser ranging and scanning},"
-                        + "<br>&nbsp;&nbsp;pages={159--200},"
-                        + "<br>&nbsp;&nbsp;year={2018},"
-                        + "<br>&nbsp;&nbsp;publisher={CRC Press}"
-                        + "<br>}";
-        // let citationContent = "<textarea disabled=\"true\" rows=\"" + citation.split("\n").length
-                                // + "\" style=\"width=400px;\">" + citation + "</textarea>";      
-        let citationContent = citation;              
-        $('.citation').append(citationContent);
-        $(".magic-button").click(() => {
-            $(".citation").toggle();
-            if ($(".citation").is(":visible")) {
-                $(".magic-button").html("Hide Citation");
-            } else {
-                $(".magic-button").html("Show Citation");
-            }
-        });
-    </script> -->
     <div id="bibtex-content" class="bibtex-content"></div>
+    <div id="bibtex-content" class="bibtex-content-filtered"></div>
     <script>
-        // getPublicationsFor(["sukhatme"], ["gaurav", "gaurav s."], 'sample.bib');
-        getAllPublications("sample.bib");
+        getAllPublications("sample.bib", "bibtex-content");
+        
+        let familyNames = ["sukhatme"];
+        let givenNames = ["gaurav", "gaurav s."];
+        $(".bibtex-content-filtered").append(
+            `<h2>
+                Filtered results for family names: ${familyNames} and given names: ${givenNames}
+            </h2>`
+            );
+        getPublicationsFor(familyNames, givenNames, 'sample.bib', "bibtex-content-filtered");
     </script>
 </body>
 </html>
