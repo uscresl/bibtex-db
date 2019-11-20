@@ -2420,10 +2420,10 @@ const removeAccents = require('remove-accents');
  * 1. parseBibTeX using bibtex-parse-js. [DONE]
  * 2. Convert keys to lowercase. [DONE]
  * 2. Combine parsed data with citation-js data. [DONE]
- * 3. If author's view then filter the author's citation else do nothing. [IN-PROGRESS]
+ * 3. If author's view then filter the author's citation else do nothing. [DONE-1]
  *      --> Take care of non-dropping-particle: "de" [DONE]
- * 4. Group by year and publication type. [AWAITING]
- * 5. Display the papers by sorting them in descending order of year followed by non-year papers. [AWAITING]
+ * 4. Group by year and publication type. [DONE]
+ * 5. Display the papers by sorting them in descending order of year followed by non-year papers. [IN-PROGRESS]
  * # Also need to take care of professor's view where the `under-review` or `accepted` papers are shown.
  * # Also omit `status` or `type` tags from displayed citation.
  * # Refer: https://www2.cs.arizona.edu/~collberg/Teaching/07.231/BibTeX/bibtex.html for standard tags.
@@ -2450,6 +2450,7 @@ const CONFERENCE = "conference";
 const TECH_REPORT = "techreport";
 const MASTERS_THESIS = "mastersthesis";
 const PHD_THESIS = "phdthesis";
+const _MISC = "_misc"
 const UNDER_REVIEW = "under-review";
 const ACCEPTED = "accepted";
 
@@ -2460,6 +2461,7 @@ const CATEGORY_HEADINGS = {
     "techreport": "Tech Reports",
     "mastersthesis": "Master's Thesis",
     "phdthesis": "Ph.D. Thesis",
+    "_misc": "Miscellaneous",
     "under-review": "Under Review",
     "accepted": "Accepted"
 };
@@ -2615,6 +2617,55 @@ function getPublications(familyNames, givenNames, combinedParsedData) {
     }
     return publications;
 }
+
+function groupPublicationsByYearAndType(parsedPublications, includeUnderReview, includeAccepted) {
+    let publicationsGroupedByYearAndType = {};
+    for (let index = 0; index < parsedPublications.length; index++) {
+        let publication = parsedPublications[index]
+        let bibTeXParseElement = publication[BIBTEX_PARSE_JS];
+        let bibTeXParseEntryTags = bibTeXParseElement.entrytags;
+        // let citationsJSElement = publication[CITATION_JS];
+        
+        // Check if under-review or accepted papers are to be included
+        if (bibTeXParseEntryTags.status != undefined) {
+            let status = bibTeXParseEntryTags.status;
+            if ((!includeUnderReview && status == UNDER_REVIEW) || (!includeAccepted && status == ACCEPTED)) {
+                continue;
+            }
+        }
+
+        let year = "";
+        if (bibTeXParseEntryTags.year == undefined) {
+            year = NO_YEAR;
+        } else {
+            year = bibTeXParseEntryTags.year
+        }
+
+        if (publicationsGroupedByYearAndType[year] == undefined) {
+            publicationsGroupedByYearAndType[year] = {}
+        }
+
+        let entrytype = ""
+        if (bibTeXParseElement.entrytype == undefined) {
+            entrytype = MISC;
+        } else {
+            if (CATEGORY_MAPPING[bibTeXParseElement.entrytype.toLowerCase()] == undefined) {
+                entrytype = MISC;
+            } else {
+                entrytype = CATEGORY_MAPPING[bibTeXParseElement.entrytype.toLowerCase()];
+            }
+        }
+
+        if (publicationsGroupedByYearAndType[year][entrytype] == undefined) {
+            publicationsGroupedByYearAndType[year][entrytype] = [];
+        }
+
+        publicationsGroupedByYearAndType[year][entrytype].push(publication);
+    }
+    return publicationsGroupedByYearAndType;
+}
+
+
 
 /**
  * Returns an object grouped by year using the parsed bibtex-parse-js data.
@@ -2795,7 +2846,6 @@ function loadBibTeXContentDiv(contentData) {
                             contentString += ", ";
                         } else {
                             if (author.literal != undefined) {
-                                console.log(author.literal);
                                 contentString += author.literal + ", ";
                             }
                         }
@@ -2962,6 +3012,9 @@ function readAndLoadBibtexDB(familyNames, givenNames, filename) {
             let bibTeXDataGroupedByYear = groupByYear(lowerCaseKeysParsedBibTeX, true, true);
             console.log(bibTeXDataGroupedByYear);
             
+            let bibTeXDataGroupedByYearAndType = groupPublicationsByYearAndType(combinedParsedData, true, true);
+            console.log(bibTeXDataGroupedByYearAndType);
+
             // load the parsed and grouped content into a div on the page
             loadBibTeXContentDiv(bibTeXDataGroupedByYear); 
 
