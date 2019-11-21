@@ -11,10 +11,10 @@ const removeAccents = require('remove-accents');
  * 1. parseBibTeX using bibtex-parse-js. [DONE]
  * 2. Convert keys to lowercase. [DONE]
  * 2. Combine parsed data with citation-js data. [DONE]
- * 3. If author's view then filter the author's citation else do nothing. [DONE-1]
+ * 3. If author's view then filter the author's citation else do nothing. [PARTIALLY-COMPLETE]-(Literal)
  *      --> Take care of non-dropping-particle: "de" [DONE]
  * 4. Group by year and publication type. [DONE]
- * 5. Display the papers by sorting them in descending order of year followed by non-year papers. [IN-PROGRESS]
+ * 5. Display the papers by sorting them in descending order of year followed by non-year papers. [DONE]
  * # Also need to take care of professor's view where the `under-review` or `accepted` papers are shown.
  * # Also omit `status` or `type` tags from displayed citation.
  * # Refer: https://www2.cs.arizona.edu/~collberg/Teaching/07.231/BibTeX/bibtex.html for standard tags.
@@ -281,146 +281,6 @@ function groupPublicationsByYearAndType(parsedPublications, includeUnderReview) 
     return publicationsGroupedByYearAndType;
 }
 
-
-
-/**
- * Returns an object grouped by year using the parsed bibtex-parse-js data.
- * @param {Array} bibtexParseJSData Array of parsed BibTeX data
- * @param {boolean} includeUnderReview Should include papers under-review?
- * @param {boolean} includeAccepted Should include published papers?
- * @returns {object} Parsed data grouped by year
- */
-function groupByYear(bibtexParseJSData, includeUnderReview, includeAccepted) {
-    let bibTeXDataGroupedByYear = {};
-
-    for (let index = 0; index < bibtexParseJSData.length; index++) {
-        const element = bibtexParseJSData[index];
-
-        // parse on the new BibTeX string object using citation-js
-        let cite = new Cite(getBibTeXStringFromBibtexParseJSON(element))
-
-        // options for citation-js get() method
-        let citeOptions = {
-            type: 'json'
-        }
-
-        // get the citation-js data and then get the element
-        let citationJSData = cite.get(citeOptions)
-        let citationJSElement = citationJSData[0]
-        
-        // hold the entrytags of bibtex-parse-js data
-        let entrytags = element.entrytags
-
-        // handle under-review and accepted papers
-        if (entrytags.status != undefined) {
-            // do not include under-review papers if includeUnderReview is false
-            if (!includeUnderReview && entrytags.status == "under-review") {
-                continue;
-            }
-
-            // do not include accepted papers if includeAccepted is false
-            if (!includeAccepted && entrytags.status == "accepted") {
-                continue;
-            }
-        }
-        // handle cases where year is not defined
-        if (entrytags.year == undefined) {
-            // create NO_YEAR key if not defined
-            if (bibTeXDataGroupedByYear[NO_YEAR] == undefined) {
-                bibTeXDataGroupedByYear[NO_YEAR] = [];
-            }
-
-            // initializing citation object
-            let citation = {};
-            citation["combined"] = {"bibtexparsejs": element, "citationjs": citationJSElement};
-            // add a title to citation object
-            if (citationJSElement.title != undefined) {
-                citation[TITLE] = citationJSElement.title;
-            } else {
-                citation[TITLE] = entrytags.title
-            }
-
-            // add the author(s) to citation object
-            if (citationJSElement.author != undefined) {
-                citation[AUTHOR] = citationJSElement.author;
-            } else if (citationJSElement.editor != undefined) {
-                citation[AUTHOR] = citationJSElement.editor;
-            } else {
-                citation[AUTHOR] = entrytags.author
-            }
-
-            // add the book title to citation object
-            if (citationJSElement[CONTAINER_TITLE] != undefined) {
-                citation[BOOKTITLE] = citationJSElement[CONTAINER_TITLE];
-            } else {
-                citation[BOOKTITLE] = entrytags.booktitle
-            }
-            
-            // add the status to citation object if present
-            if (entrytags.status != undefined) {
-                citation[STATUS] = entrytags.status;
-            }
-
-            // add the type to citation object if present
-            if (entrytags.type != undefined) {
-                citation[TYPE] = entrytags.type;
-            }
-
-            bibTeXDataGroupedByYear[NO_YEAR].push(citation);
-        } else {
-            // create a year if it does not exist
-            if (bibTeXDataGroupedByYear[entrytags.year] == undefined) {
-                bibTeXDataGroupedByYear[entrytags.year] = [];
-            }
-
-            // initializing citation object
-            let citation = {}
-            citation["combined"] = {"bibtexparsejs": element, "citationjs": citationJSElement};
-            // add a title to citation object
-            if (citationJSElement.title != undefined) {
-                citation[TITLE] = citationJSElement.title;
-            } else {
-                citation[TITLE] = entrytags.title
-            }
-
-            // add the author(s) to citation object
-            if (citationJSElement.author != undefined) {
-                citation[AUTHOR] = citationJSElement.author;
-            } else if (citationJSElement.editor != undefined) {
-                citation[AUTHOR] = citationJSElement.editor;
-            } else {
-                citation[AUTHOR] = entrytags.author
-            }
-
-            // add the book title to citation object
-            if (citationJSElement[CONTAINER_TITLE] != undefined) {
-                citation[BOOKTITLE] = citationJSElement[CONTAINER_TITLE];
-            } else {
-                citation[BOOKTITLE] = entrytags.booktitle
-            }
-
-            // add the year to citation object if present
-            if (entrytags.year != undefined) {
-                citation[YEAR] = entrytags.year;
-            }
-
-            // add the status to citation object if present
-            if (entrytags.status != undefined) {
-                citation[STATUS] = entrytags.status;
-            }
-
-            // add the type to citation object if present
-            if (entrytags.type != undefined) {
-                citation[TYPE] = entrytags.type;
-            }
-
-            bibTeXDataGroupedByYear[entrytags.year].push(citation);
-        }
-    }
-
-    return bibTeXDataGroupedByYear;
-}
-
 function getCitationContent(bibTeXParseJSElement) {
     let citationContent = '';
     citationContent += '@' + bibTeXParseJSElement.entrytype.toLowerCase() + '{';
@@ -450,7 +310,7 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
         let contentString = "";
         let year = reversedKeys[index];
         
-        contentString += `<h2>${year}</h2>`;
+        contentString += `<h2 style="margin-bottom: 1vh;">${year}</h2>`;
         let publicationsForYear = publicationsGroupedByYearAndType[year];
         for (let categoryIndex = 0; categoryIndex < CATEGORY_ORDERING.length; categoryIndex++) {
             let category = CATEGORY_ORDERING[categoryIndex];
@@ -539,11 +399,13 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
 
                     let citationKey = bibTeXParseJSElement.citationkey 
                                         + Math.random().toString(36).substring(2,15);
-                    contentString += `<button style="background-color: #880000; margin-left: 1vw;
+                    contentString += `<button id="button-${citationKey}"
+                                            class="button-${citationKey}"
+                                            style="background-color: #880000; margin-left: 1vw;
                                                             padding-left: 15px; padding-right: 15px;
-                                                            color: white; border: none; border-radius: 5px;"
-                                        id="button-${citationKey}"
-                                        class="button-${citationKey}">Show Citation</button>`;
+                                                            color: white; border: none; border-radius: 5px;">
+                                            Show Citation
+                                        </button>`;
                     contentString += `<div id="citation-${citationKey}"
                                         class="citation-${citationKey}"
                                         style="background-color: #e8e8e8; padding: 5px; margin: 5px; color: black;
@@ -578,184 +440,6 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
     if (others != undefined) {
         $("." + divClass).append(others);
     }
-}
-
-/**
- * Loads the parsed content into the div on the website.
- * @param {object} contentData Parsed BibTeX content
- */
-function loadBibTeXContentDiv(contentData) {
-    for (year in contentData) {
-        contentString = "";
-        contentString += "<h2>" + year + "</h2>";
-        contentString += "<ul>";
-        contentData[year].forEach(element => {
-            contentString += "<li>";
-            if (element.author != undefined) {
-                if (Array.isArray(element.author)) {
-                    element.author.forEach((author, index) => {
-                        if (element.author.length > 1 && (index == element.author.length - 1)) {
-                            contentString = contentString.substring(0, contentString.length - 2);
-                            contentString += " and ";
-                        }
-
-                        if (author.given != undefined || author.family != undefined) {
-                            if (author.given != undefined) {
-                                contentString += author.given + " ";
-                            }
-                            if (author.family != undefined) {
-                                contentString += author.family;
-                            }
-                            contentString += ", ";
-                        } else {
-                            if (author.literal != undefined) {
-                                contentString += author.literal + ", ";
-                            }
-                        }
-                    });
-                } else {
-                    contentString += element.author + ", "
-                }
-            }
-
-            if (element.title != undefined) {
-                contentString += element.title + ", ";
-            }
-
-            if (element.booktitle != undefined) {
-                contentString += "In " + element.booktitle + ", ";
-            }
-
-            if (element.year != undefined) {
-                contentString += element.year + ", ";
-            }
-
-            if (element.status != undefined) {
-                contentString += element.status + ", ";
-            }
-            
-            contentString = contentString.substring(0, contentString.length - 2);
-            contentString += ".";
-            let bibTeXParseElement = element["combined"]["bibtexparsejs"];
-            let citationKey = bibTeXParseElement.citationkey 
-                                + Math.random().toString(36).substring(2,15);
-            contentString += `<button style="background-color: #880000; margin-left: 1vw;
-                                                    padding-left: 15px; padding-right: 15px;
-                                                    color: white; border: none; border-radius: 5px;"
-                                id="button-${citationKey}"
-                                class="button-${citationKey}">Show Citation</button>`;
-            contentString += `<div id="citation-${citationKey}"
-                                class="citation-${citationKey}"
-                                style="background-color: #e8e8e8; padding: 5px; margin: 5px; color: black;
-                                        border-radius: 5px; font-size: 11px; display: none;
-                                        font-family: 'Courier New', Courier, monospace;">
-                                    ${getCitationContent(bibTeXParseElement)}
-                                </div>`;
-            contentString += "</div>";
-            contentString += ""
-            contentString += `<script>
-                                    $(".button-${citationKey}").click(() => {
-                                        $(".citation-${citationKey}").toggle();
-                                        if ($(".citation-${citationKey}").is(":visible")) {
-                                            $(".button-${citationKey}").html("Hide Citation");
-                                        } else {
-                                            $(".button-${citationKey}").html("Show Citation");
-                                        }
-                                    });
-                                </script>`
-                contentString += "</li>";
-        });
-        contentString += "</ul>";
-        $(".bibtex-content").append(contentString);
-    }
-}
-
-function loadBibTeXContentDivFiltered(publications, familyNames, givenNames) {
-    contentString = "<hr><h2>Filtered for Family Names: " + JSON.stringify(familyNames) 
-                    + " and Given Names: " + JSON.stringify(givenNames) 
-                    + ":</h2>";
-    contentString += "<ul>";
-    for (let index = 0; index < publications.length; index++) {
-        contentString += "<li>"
-        let bibTeXParseElement = publications[index][BIBTEX_PARSE_JS];
-        let bibTeXParseEntryTags = bibTeXParseElement.entrytags;
-        let citationsJSElement = publications[index][CITATION_JS];
-
-        if (citationsJSElement.author != undefined) {
-            if (Array.isArray(citationsJSElement.author)) {
-                citationsJSElement.author.forEach((author, index) => {
-                    if (citationsJSElement.author.length > 1 && (index == citationsJSElement.author.length - 1)) {
-                        contentString = contentString.substring(0, contentString.length - 2);
-                        contentString += " and ";
-                    }
-
-                    if (author.given != undefined || author.family != undefined) {
-                        if (author.given != undefined) {
-                            contentString += author.given + " ";
-                        }
-                        if (author.family != undefined) {
-                            contentString += author.family;
-                        }
-                        contentString += ", ";
-                    } else {
-                        if (author.literal != undefined) {
-                            contentString += author.literal + ", ";
-                        }
-                    }
-                });
-            } else {
-                contentString += citationsJSElement.author + ", "
-            }
-        }
-
-        if (citationsJSElement.title != undefined) {
-            contentString += citationsJSElement.title + ", ";
-        }
-
-        if (citationsJSElement[CONTAINER_TITLE] != undefined) {
-            contentString += "In " + citationsJSElement[CONTAINER_TITLE] + ", ";
-        }
-
-        if (bibTeXParseEntryTags.year != undefined) {
-            contentString += bibTeXParseEntryTags.year + ", ";
-        }
-
-        if (bibTeXParseEntryTags.status != undefined) {
-            contentString += bibTeXParseEntryTags.status + ", ";
-        }
-        
-        contentString = contentString.substring(0, contentString.length - 2);
-        contentString += ".";
-        let citationKey = bibTeXParseElement.citationkey 
-                                + Math.random().toString(36).substring(2,15);
-        contentString += `<button style="background-color: #880000; margin-left: 1vw;
-                                                padding-left: 15px; padding-right: 15px;
-                                                color: white; border: none; border-radius: 5px;"
-                            id="button-${citationKey}"
-                            class="button-${citationKey}">Show Citation</button>`;
-        contentString += `<div id="citation-${citationKey}"
-                            class="citation-${citationKey}"
-                            style="background-color: #e8e8e8; padding: 5px; margin: 5px; color: black;
-                                        border-radius: 5px; font-size: 11px; display: none;
-                                        font-family: 'Courier New', Courier, monospace;">
-                                ${getCitationContent(bibTeXParseElement)}
-                            </div>`;
-        contentString += "</div>";
-        contentString += ""
-        contentString += `<script>
-                                $(".button-${citationKey}").click(() => {
-                                    $(".citation-${citationKey}").toggle();
-                                    if ($(".citation-${citationKey}").is(":visible")) {
-                                        $(".button-${citationKey}").html("Hide Citation");
-                                    } else {
-                                        $(".button-${citationKey}").html("Show Citation");
-                                    }
-                                });
-                            </script>`
-        contentString += "</li>"
-    }
-    contentString += "</ul>";
-    $(".bibtex-content").append(contentString);
 }
 
 function readAndLoadBibtexDBFor(familyNames, givenNames, filename, divClass) {
