@@ -2420,7 +2420,7 @@ const removeAccents = require('remove-accents');
  * 1. parseBibTeX using bibtex-parse-js. [DONE]
  * 2. Convert keys to lowercase. [DONE]
  * 2. Combine parsed data with citation-js data. [DONE]
- * 3. If author's view then filter the author's citation else do nothing. [PARTIALLY-COMPLETE]-(Literal)
+ * 3. If author's view then filter the author's citation else do nothing. [DONE]
  *      --> Take care of non-dropping-particle: "de" [DONE]
  * 4. Group by year and publication type. [DONE]
  * 5. Display the papers by sorting them in descending order of year followed by non-year papers. [DONE]
@@ -2435,6 +2435,7 @@ const INPUT_FILENAME = "sample.bib";
 const NO_YEAR = "Other";
 const TITLE = "title";
 const AUTHOR = "author";
+const EDITOR = "editor";
 const BOOKTITLE = "booktitle";
 const CONTAINER_TITLE = "container-title";
 const YEAR = "year";
@@ -2573,43 +2574,37 @@ function getPublications(familyNames, givenNames, combinedParsedData) {
         let authors = citationJSElement.author;
         if (authors != undefined) {
             for (let f = 0; f < familyNames.length; f++) {
-                let familyName = familyNames[f];
+                let familyName = familyNames[f].normalize("NFC");
                 for (let g = 0; g < givenNames.length; g++) {
-                    let givenName = givenNames[g];
+                    let givenName = givenNames[g].normalize("NFC");
                     for (let a = 0; a < authors.length; a++) {
                         author = authors[a];
                         let authorGivenName = author.given;
                         let authorFamilyName = author.family;
-                        let authorLiteral = author.literal;
                         if (author[NON_DROPPING_PARTICLE] != undefined) {
                             authorFamilyName += author[NON_DROPPING_PARTICLE] + " " + authorFamilyName;
                         }
                         if (authorGivenName != undefined 
-                            && removeAccents(authorGivenName).toLowerCase() == givenName.toLowerCase() 
+                            && removeAccents(authorGivenName.normalize("NFC")).toLowerCase() == givenName.toLowerCase() 
                             && authorFamilyName != undefined 
-                            && removeAccents(authorFamilyName).toLowerCase() == familyName.toLowerCase()) {
+                            && removeAccents(authorFamilyName.normalize("NFC")).toLowerCase() == familyName.toLowerCase()) {
                             // Comparison with given and family name.
                             publications.push(combinedDataElement);
                             matchFound = true;
                         } else if (authorGivenName == undefined 
                             && authorFamilyName != undefined
-                            && removeAccents(authorFamilyName).toLowerCase() == familyName.toLowerCase()) {
+                            && removeAccents(authorFamilyName.normalize("NFC")).toLowerCase() == familyName.toLowerCase()) {
                             // If the author only has a family name and no given name, it will be counted as a family
                             // name and hence the comparison with family name.
                             publications.push(combinedDataElement);
                             matchFound = true; 
                         } else if (authorGivenName != undefined 
-                            && removeAccents(authorGivenName).toLowerCase() == familyName.toLowerCase() 
+                            && removeAccents(authorGivenName.normalize("NFC")).toLowerCase() == familyName.toLowerCase() 
                             && authorFamilyName == undefined) {
                             // If the author only has a given name and no family name, it will be counted as a family
                             // name and hence the comparison with family name.
                             publications.push(combinedDataElement);
                             matchFound = true;
-                        } else if (authorLiteral != undefined) {
-                            processedAuthorLiteral = removeAccents(authorLiteral).toLowerCase();
-                            // (X) DOUBT.
-                            // to be implemented.
-                            // occurs only when authors are not formatted properly.
                         }
                         if (matchFound) {
                             break;
@@ -2623,6 +2618,57 @@ function getPublications(familyNames, givenNames, combinedParsedData) {
                     break;
                 }
             }   
+        }
+
+        let editors = citationJSElement.editor;
+        if (!matchFound) {
+            if (editors != undefined) {
+                for (let f = 0; f < familyNames.length; f++) {
+                    let familyName = familyNames[f].normalize("NFC");
+                    for (let g = 0; g < givenNames.length; g++) {
+                        let givenName = givenNames[g].normalize("NFC");
+                        for (let a = 0; a < editors.length; a++) {
+                            editor = editors[a];
+                            let editorGivenName = editor.given;
+                            let editorFamilyName = editor.family;
+                            if (editor[NON_DROPPING_PARTICLE] != undefined) {
+                                editorFamilyName += editor[NON_DROPPING_PARTICLE] + " " + editorFamilyName;
+                            }
+                            if (editorGivenName != undefined 
+                                && removeAccents(editorGivenName.normalize("NFC")).toLowerCase() == givenName.toLowerCase() 
+                                && editorFamilyName != undefined 
+                                && removeAccents(editorFamilyName.normalize("NFC")).toLowerCase() == familyName.toLowerCase()) {
+                                // Comparison with given and family name.
+                                publications.push(combinedDataElement);
+                                matchFound = true;
+                            } else if (editorGivenName == undefined 
+                                && editorFamilyName != undefined
+                                && removeAccents(editorFamilyName.normalize("NFC")).toLowerCase() == familyName.toLowerCase()) {
+                                // If the editor only has a family name and no given name, it will be counted as a family
+                                // name and hence the comparison with family name.
+                                publications.push(combinedDataElement);
+                                matchFound = true; 
+                            } else if (editorGivenName != undefined 
+                                && removeAccents(editorGivenName.normalize("NFC")).toLowerCase() == familyName.toLowerCase() 
+                                && editorFamilyName == undefined) {
+                                // If the editor only has a given name and no family name, it will be counted as a family
+                                // name and hence the comparison with family name.
+                                publications.push(combinedDataElement);
+                                matchFound = true;
+                            }
+                            if (matchFound) {
+                                break;
+                            }
+                        }
+                        if (matchFound) {
+                            break;
+                        }
+                    }
+                    if (matchFound) {
+                        break;
+                    }
+                }   
+            }
         }
     }
     return publications;
@@ -2695,6 +2741,9 @@ function getCitationContent(bibTeXParseJSElement) {
     citationContent += '@' + bibTeXParseJSElement.entrytype.toLowerCase() + '{';
     citationContent += bibTeXParseJSElement.citationkey + ',';
     for (let key in bibTeXParseJSElement.entrytags) {
+        if (key == STATUS || key == TYPE) {
+            continue;
+        }
         value = bibTeXParseJSElement.entrytags[key];
         citationContent += "<br>&nbsp;&nbsp;&nbsp;&nbsp;" + key + "=" + '{' + value + "}," ;
     }
@@ -2719,13 +2768,17 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
         let contentString = "";
         let year = reversedKeys[index];
         
-        contentString += `<h2 style="margin-bottom: 1vh;">${year}</h2>`;
+        contentString += `<div style="font-size: 30px; margin-top: 1em; font-weight: bold;">
+                            ${year}
+                            </div>`;
         let publicationsForYear = publicationsGroupedByYearAndType[year];
         for (let categoryIndex = 0; categoryIndex < CATEGORY_ORDERING.length; categoryIndex++) {
             let category = CATEGORY_ORDERING[categoryIndex];
             if (publicationsForYear[category] != undefined) {
                 let categoryHeading = CATEGORY_HEADINGS[category];
-                contentString += `<h3>&nbsp;&nbsp;${categoryHeading}</h3>`;
+                contentString += `<div style="font-size: 20px; margin-top: 1em; font-weight: bold;">
+                                    &nbsp;&nbsp;${categoryHeading}
+                                    </div>`;
 
                 contentString += `<ul>`;
                 let publicationsForCategory = publicationsForYear[category];
@@ -2772,6 +2825,42 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
                         }
                     } else if (bibTeXParseJSAuthors != undefined) {
                         contentString += `${bibTeXParseJSAuthors}, `;
+                    }
+
+                    // Editors are handled below.
+                    let citationJSEditors = citationJSElement[EDITOR];
+                    let bibTeXParseJSEditors = bibTeXParseEntryTags[EDITOR];
+                    if (citationJSEditors != undefined) {
+                        for (let editorIndex = 0; editorIndex < citationJSEditors.length; editorIndex++) {
+                            let editor = citationJSEditors[editorIndex];
+                            if (editorIndex == citationJSEditors.length - 1 && citationJSEditors.length > 1) {
+                                contentString = contentString.substring(0, contentString.length - 2);
+                                contentString += ` and `;
+                            }
+                            if (editor.literal == undefined) {
+                                if (editor.given != undefined && editor.family != undefined) {
+                                    if (editor[NON_DROPPING_PARTICLE] != undefined) {
+                                        contentString += `${editor.given} ${editor[NON_DROPPING_PARTICLE]} 
+                                                            ${editor.family}, `;
+                                    } else {
+                                        contentString += `${editor.given} ${editor.family}, `;
+                                    }
+                                    
+                                } else if (editor.given != undefined) {
+                                    contentString += `${editor.given}, `;
+                                } else if (editor.family != undefined) {
+                                    if (editor[NON_DROPPING_PARTICLE] != undefined) {
+                                        contentString += `${editor[NON_DROPPING_PARTICLE]} ${editor.family}, `;
+                                    } else {
+                                        contentString += `${editor.family}, `;
+                                    }
+                                }
+                            } else {
+                                contentString += `${editor.literal}, `;
+                            }
+                        }
+                    } else if (bibTeXParseJSEditors != undefined) {
+                        contentString += `${bibTeXParseJSEditors}, `;
                     }
 
                     // Title is handled below.
@@ -2868,12 +2957,12 @@ function readAndLoadBibtexDBFor(familyNames, givenNames, filename, divClass) {
                 let publications = getPublications(familyNames, givenNames, combinedParsedData);
                 console.log(publications);
                 
-                let publicationsGroupedByYearAndType = groupPublicationsByYearAndType(publications);
+                let publicationsGroupedByYearAndType = groupPublicationsByYearAndType(publications, false);
                 
                 loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass);
             } catch (error) {
                 console.log(error);
-                $(".bibtex-content").append("BibTeX file parsing or internal error.");
+                $(divClass).append("BibTeX file parsing or internal error.");
             }
         });
     });
@@ -2901,22 +2990,14 @@ function readAndLoadAllBibtexDB(filename, divClass) {
                 loadBibTeXContentDivFromData(bibTeXDataGroupedByYearAndType, divClass);
             } catch (error) {
                 console.log(error);
-                $(".bibtex-content").append("BibTeX file parsing or internal error.");
+                $(divClass).append("BibTeX file parsing or internal error.");
             }
         });
     });
 }
 
-function getPublicationsFor(familyNames, givenNames, filename, divClass) {
-    readAndLoadBibtexDBFor(familyNames, givenNames, filename, divClass);
-}
-
-function getAllPublications(filename, divClass) {
-    readAndLoadAllBibtexDB(filename, divClass);
-}
-
-window.getPublicationsFor = getPublicationsFor;
-window.getAllPublications = getAllPublications;
+window.getPublicationsFor = readAndLoadBibtexDBFor;
+window.getAllPublications = readAndLoadAllBibtexDB;
 },{"bibtex-parse-js":110,"citation-js":112,"remove-accents":117}],9:[function(require,module,exports){
 "use strict";
 
