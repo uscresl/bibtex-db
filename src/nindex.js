@@ -46,6 +46,7 @@ const UNDER_REVIEW = "under-review";
 const WORKSHOP = "workshop";
 const ABSTRACT = "abstract";
 const PREPRINT = "preprint";
+const UNPUBLISHED = "unpublished";
 const ACCEPTED = "accepted";
 
 const CATEGORY_HEADINGS = {
@@ -115,8 +116,8 @@ function convertKeysToLowerCase(jsonInput) {
 
 /**
  * Takes a BibTeX JSON parsed by bibtex-parse-js and returns a string of BibTeX for the ojbect.
- * @param {object} bibtexParseJSON BibTeX JSON object
- * @returns {string} BibTeX string
+ * @param {object} bibtexParseJSON JSON object of BibTeX
+ * @returns {string} string form BibTeX
  */
 function getBibTeXStringFromBibtexParseJSON(bibtexParseJSON) {
     let bibtexString = '';
@@ -130,6 +131,11 @@ function getBibTeXStringFromBibtexParseJSON(bibtexParseJSON) {
     return bibtexString;
 }
 
+/**
+ * Combines the bibtex-parse-js data with the corresponding citation-js data
+ * @param {Array} bibtexParseJSData Array of parsed BibTeX citations
+ * @returns {Array} Array of objects with combined parsed data from both the plugins
+ */
 function getCombinedParsedData(bibtexParseJSData) {
     let combinedParsedData = [];
     let citeOptions = {
@@ -146,22 +152,30 @@ function getCombinedParsedData(bibtexParseJSData) {
         combinedDataElement[BIBTEX_PARSE_JS] = bibTeXParseElement;
         combinedParsedData.push(combinedDataElement);
     }
-    return combinedParsedData
+    return combinedParsedData;
 }
 
 /**
- * 
- * @param {Array} familyNames 
- * @param {Array} givenNames 
- * @param {Array} combinedParsedData 
+ * Gets/filters publications for a given set of author family names and given names.
+ * @param {Array} familyNames Array of possible family names of the author
+ * @param {Array} givenNames Array of possible given names of the author
+ * @param {Array} combinedParsedData Array of objects which include data parsed from bibtex-parse-js and citation-js
  */
 function getPublications(familyNames, givenNames, combinedParsedData) {
     let publications = [];
+    if (familyNames == undefined || familyNames == []) {
+        familyNames = [""];
+    }
+    if (givenNames == undefined || givenNames == []) {
+        givenNames = [""];
+    }
     for (let index = 0; index < combinedParsedData.length; index++) {
         let combinedDataElement = combinedParsedData[index];
         let citationJSElement = combinedDataElement[CITATION_JS];
         let bibTeXParseElement = combinedDataElement[BIBTEX_PARSE_JS];
         let matchFound = false;
+
+        // checking if the author belongs to authors array of the parsed data
         let authors = citationJSElement.author;
         if (authors != undefined) {
             for (let f = 0; f < familyNames.length; f++) {
@@ -268,10 +282,9 @@ function getPublications(familyNames, givenNames, combinedParsedData) {
 function groupPublicationsByYearAndType(parsedPublications, includeUnderReview) {
     let publicationsGroupedByYearAndType = {};
     for (let index = 0; index < parsedPublications.length; index++) {
-        let publication = parsedPublications[index]
+        let publication = parsedPublications[index];
         let bibTeXParseElement = publication[BIBTEX_PARSE_JS];
         let bibTeXParseEntryTags = bibTeXParseElement.entrytags;
-        // let citationsJSElement = publication[CITATION_JS];
         
         // Check if under-review or accepted papers are to be included
         if (bibTeXParseEntryTags.status != undefined) {
@@ -285,11 +298,11 @@ function groupPublicationsByYearAndType(parsedPublications, includeUnderReview) 
         if (bibTeXParseEntryTags.year == undefined) {
             year = NO_YEAR;
         } else {
-            year = bibTeXParseEntryTags.year
+            year = bibTeXParseEntryTags.year;
         }
 
         if (publicationsGroupedByYearAndType[year] == undefined) {
-            publicationsGroupedByYearAndType[year] = {}
+            publicationsGroupedByYearAndType[year] = {};
         }
 
         let entrytype = ""
@@ -342,6 +355,11 @@ function getCitationContent(bibTeXParseJSElement) {
     return citationContent;
 }
 
+/**
+ * Returns a reversely sorted array of object keys
+ * @param {Object} object any js object
+ * @returns {Array} Array of reveresely sorted object keys
+ */
 function getReversedSortedKeys(object) {
     let keys = [];
     for (let key in object) {
@@ -359,7 +377,8 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
         let contentString = "";
         let year = reversedKeys[index];
         
-        contentString += `<div style="font-size: 30px; margin-top: 1em; font-weight: bold;">
+        // year heading.
+        contentString += `<div style="font-size: 20px; font-weight: bold;">
                             ${year}
                             </div>`;
         let publicationsForYear = publicationsGroupedByYearAndType[year];
@@ -367,8 +386,9 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
             let category = CATEGORY_ORDERING[categoryIndex];
             if (publicationsForYear[category] != undefined) {
                 let categoryHeading = CATEGORY_HEADINGS[category];
-                contentString += `<div style="font-size: 20px; margin-top: 1em; font-weight: bold;">
-                                    &nbsp;&nbsp;${categoryHeading}
+                // category heading
+                contentString += `<div style="font-size: 15px; margin-left: 1em; margin-top: 10px; font-weight: bold;">
+                                        ${categoryHeading}
                                     </div>`;
 
                 contentString += `<ul>`;
@@ -382,7 +402,7 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
                     let bibTeXParseEntryTags = bibTeXParseJSElement.entrytags;
                     let citationJSElement = publication[CITATION_JS];
                     
-                    // Authors are handled below.
+                    // authors are handled below.
                     let citationJSAuthors = citationJSElement[AUTHOR];
                     let bibTeXParseJSAuthors = bibTeXParseEntryTags[AUTHOR];
                     if (citationJSAuthors != undefined) {
@@ -418,7 +438,7 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
                         contentString += `${bibTeXParseJSAuthors}, `;
                     }
 
-                    // Editors are handled below.
+                    // editors are handled below.
                     let citationJSEditors = citationJSElement[EDITOR];
                     let bibTeXParseJSEditors = bibTeXParseEntryTags[EDITOR];
                     if (citationJSEditors != undefined) {
@@ -454,14 +474,14 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
                         contentString += `${bibTeXParseJSEditors}, `;
                     }
 
-                    // Title is handled below.
+                    // title is handled below.
                     if (citationJSElement[TITLE] != undefined) {
                         contentString += `${citationJSElement[TITLE]}, `;
                     } else if (bibTeXParseEntryTags[TITLE] != undefined) {
                         contentString += `${bibTeXParseEntryTags[TITLE]}, `;
                     }
 
-                    // Conference/journal name is handled below.
+                    // conference/journal name is handled below.
                     if (citationJSElement[CONTAINER_TITLE] != undefined) {
                         if (bibTeXParseEntryTags[STATUS] != undefined && bibTeXParseEntryTags[STATUS] == UNDER_REVIEW) {
                             contentString += `Under review at `;
@@ -478,15 +498,17 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
                         contentString += `${bibTeXParseEntryTags[JOURNAL]}, `;
                     }
 
-                    // Year is handled here.
+                    // year is handled here.
                     if (bibTeXParseEntryTags[YEAR] != undefined) {
                         contentString += `${bibTeXParseEntryTags[YEAR]}, `;
                     }
 
+                    // terminating the content with a full stop.
                     contentString = contentString.substring(0, contentString.length - 2);
                     contentString += `.`;
 
-                    let citationKey = bibTeXParseJSElement.citationkey 
+                    // show/hide citation button
+                    let citationKey = bibTeXParseJSElement.citationkey ;
                                         + Math.random().toString(36).substring(2,15);
                     contentString += `<button id="button-${citationKey}"
                                             class="button-${citationKey}"
@@ -519,14 +541,17 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
                 contentString += `</ul>`
             }
         }
-        // handle the case of other publications after all the years
+        // appending the citation to the content.
         if (year == NO_YEAR) {
+            // handle the case of other publications after all the years.
             others = contentString;
         } else {
+            // append content.
             $("." + divClass).append(contentString);
         }
     }
     if (others != undefined) {
+        // now append others at the end.
         $("." + divClass).append(others);
     }
 }
@@ -540,16 +565,17 @@ function readAndLoadBibtexDBFor(familyNames, givenNames, filename, divClass) {
                 
                 // convert all keys to lowercase to enable ease of access
                 let lowerCaseKeysParsedBibTeX = convertKeysToLowerCase(parsedBibTeX);
-                console.log(lowerCaseKeysParsedBibTeX);
                 
+                // get combined data which includes bibtex-parse-js and citation-js data.
                 let combinedParsedData = getCombinedParsedData(lowerCaseKeysParsedBibTeX);
-                console.log(combinedParsedData);
 
+                // filter the publication based on author's family names and given names.
                 let publications = getPublications(familyNames, givenNames, combinedParsedData);
-                console.log(publications);
                 
+                // group the data by year and type.
                 let publicationsGroupedByYearAndType = groupPublicationsByYearAndType(publications, false);
                 
+                // load the parsed and grouped content into a div on the page.
                 loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass);
             } catch (error) {
                 console.log(error);
@@ -563,19 +589,17 @@ function readAndLoadAllBibtexDB(filename, divClass) {
     fetch(filename).then((response) => {
         response.text().then((allText) => {
             try {
-                // parse the file text
+                // parse the file text.
                 let parsedBibTeX = bibTeXParse.toJSON(allText);
                 
                 // convert all keys to lowercase to enable ease of access.
                 let lowerCaseKeysParsedBibTeX = convertKeysToLowerCase(parsedBibTeX);
-                console.log(lowerCaseKeysParsedBibTeX);
                 
+                // get combined data which includes bibtex-parse-js and citation-js data.
                 let combinedParsedData = getCombinedParsedData(lowerCaseKeysParsedBibTeX);
-                console.log(combinedParsedData);
 
                 // group the data by year and type.
                 let bibTeXDataGroupedByYearAndType = groupPublicationsByYearAndType(combinedParsedData, true);
-                console.log(bibTeXDataGroupedByYearAndType);
 
                 // load the parsed and grouped content into a div on the page.
                 loadBibTeXContentDivFromData(bibTeXDataGroupedByYearAndType, divClass);
