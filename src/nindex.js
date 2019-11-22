@@ -1,29 +1,24 @@
 // IMPORTS
-// first parser import
+// Referred to as bibtex-parse-js parser (first parser).
 const bibTeXParse = require('bibtex-parse-js');
-// second parser import
+// Referred to as citation-js parser (second parser).
 const Cite = require('citation-js');
-// remove accents
+// Plugin to remove accented characters from author/editor names.
 const removeAccents = require('remove-accents');
 
 /**
- * todo: Complete the following flows:
- * 1. parseBibTeX using bibtex-parse-js. [DONE]
- * 2. Convert keys to lowercase. [DONE]
- * 2. Combine parsed data with citation-js data. [DONE]
- * 3. If author's view then filter the author's citation else do nothing. [DONE]
- *      --> Take care of non-dropping-particle: "de" [DONE]
- * 4. Group by year and publication type. [DONE]
- * 5. Display the papers by sorting them in descending order of year followed by non-year papers. [DONE]
- * # Also need to take care of professor's view where the `under-review` or `accepted` papers are shown.
- * # Also omit `status` or `type` tags from displayed citation.
- * # Refer: https://www2.cs.arizona.edu/~collberg/Teaching/07.231/BibTeX/bibtex.html for standard tags.
+ * # RESOURCES:
+ * - Refer: https://www2.cs.arizona.edu/~collberg/Teaching/07.231/BibTeX/bibtex.html for standard tags.
+ * - Refer: https://www.economics.utoronto.ca/osborne/latex/BIBTEX.HTM for common mistakes with BibTeX.
+ * - Refer: https://www.andy-roberts.net/res/writing/latex/bibentries.pdf for more learning more about the entry and 
+ *          field types.
  */
 
 // CONSTANTS
-const INPUT_FILENAME = "sample.bib";
-// const INPUT_FILENAME = "https://sites.usc.edu/resl/files/2019/11/sample.bib";
+// Year title for citations with no year.
 const NO_YEAR = "Other";
+
+// Tags to be dealed with.
 const TITLE = "title";
 const AUTHOR = "author";
 const EDITOR = "editor";
@@ -32,10 +27,13 @@ const CONTAINER_TITLE = "container-title";
 const YEAR = "year";
 const STATUS = "status";
 const TYPE = "type";
+
+// Indexing constants
 const NON_DROPPING_PARTICLE = "non-dropping-particle";
 const CITATION_JS = "citationjs";
 const BIBTEX_PARSE_JS = "bibtexparsejs";
 
+// Entry types
 const JOURNAL = "journal";
 const BOOK = "book";
 const CONFERENCE = "conference";
@@ -49,6 +47,7 @@ const PREPRINT = "preprint";
 const UNPUBLISHED = "unpublished";
 const ACCEPTED = "accepted";
 
+// Heading for each category to be shown.
 const CATEGORY_HEADINGS = {
     "journal": "Journal Papers",
     "book": "Books",
@@ -63,6 +62,7 @@ const CATEGORY_HEADINGS = {
     "accepted": "Accepted"
 };
 
+// Mapping of each category.
 const CATEGORY_MAPPING = {
     "article": "journal",
     "book": "book",
@@ -83,6 +83,7 @@ const CATEGORY_MAPPING = {
     "preprint": "preprint"
 }
 
+// Ordering of category traversal.
 const CATEGORY_ORDERING = [PHD_THESIS, MASTERS_THESIS, JOURNAL, BOOK, CONFERENCE, WORKSHOP, ABSTRACT, PREPRINT, 
                             TECH_REPORT];
 
@@ -160,22 +161,25 @@ function getCombinedParsedData(bibtexParseJSData) {
  * @param {Array} familyNames Array of possible family names of the author
  * @param {Array} givenNames Array of possible given names of the author
  * @param {Array} combinedParsedData Array of objects which include data parsed from bibtex-parse-js and citation-js
+ * @returns {Array} Array of publications filtered by author's given and family names
  */
-function getPublications(familyNames, givenNames, combinedParsedData) {
+function filterPublications(familyNames, givenNames, combinedParsedData) {
     let publications = [];
+    // Handling cases where author's given name or family name array are not defined or are empty.
     if (familyNames == undefined || familyNames == []) {
         familyNames = [""];
     }
     if (givenNames == undefined || givenNames == []) {
         givenNames = [""];
     }
+
+    // Starting the filtering process.
     for (let index = 0; index < combinedParsedData.length; index++) {
         let combinedDataElement = combinedParsedData[index];
         let citationJSElement = combinedDataElement[CITATION_JS];
-        let bibTeXParseElement = combinedDataElement[BIBTEX_PARSE_JS];
         let matchFound = false;
 
-        // checking if the author belongs to authors array of the parsed data
+        // Checking if the author belongs to authors array of the parsed data.
         let authors = citationJSElement.author;
         if (authors != undefined) {
             for (let f = 0; f < familyNames.length; f++) {
@@ -190,26 +194,33 @@ function getPublications(familyNames, givenNames, combinedParsedData) {
                             authorFamilyName += author[NON_DROPPING_PARTICLE] + " " + authorFamilyName;
                         }
                         if (authorGivenName != undefined 
-                            && removeAccents(authorGivenName.normalize("NFC")).toLowerCase() == givenName.toLowerCase() 
-                            && authorFamilyName != undefined 
-                            && removeAccents(authorFamilyName.normalize("NFC")).toLowerCase() == familyName.toLowerCase()) {
+                        && removeAccents(authorGivenName.normalize("NFC")).toLowerCase() == givenName.toLowerCase() 
+                        && authorFamilyName != undefined 
+                        && removeAccents(authorFamilyName.normalize("NFC")).toLowerCase() == familyName.toLowerCase()) {
                             // Comparison with given and family name.
                             publications.push(combinedDataElement);
                             matchFound = true;
                         } else if (authorGivenName == undefined 
-                            && authorFamilyName != undefined
-                            && removeAccents(authorFamilyName.normalize("NFC")).toLowerCase() == familyName.toLowerCase()) {
+                        && authorFamilyName != undefined
+                        && removeAccents(authorFamilyName.normalize("NFC")).toLowerCase() == familyName.toLowerCase()) {
                             // If the author only has a family name and no given name, it will be counted as a family
                             // name and hence the comparison with family name.
                             publications.push(combinedDataElement);
                             matchFound = true; 
                         } else if (authorGivenName != undefined 
-                            && removeAccents(authorGivenName.normalize("NFC")).toLowerCase() == familyName.toLowerCase() 
-                            && authorFamilyName == undefined) {
+                        && removeAccents(authorGivenName.normalize("NFC")).toLowerCase() == familyName.toLowerCase() 
+                        && authorFamilyName == undefined) {
                             // If the author only has a given name and no family name, it will be counted as a family
                             // name and hence the comparison with family name.
                             publications.push(combinedDataElement);
                             matchFound = true;
+                        } else if (author.literal != undefined) {
+                            authorLiteral = removeAccents(author.literal.normalize("NFC")).toLowerCase();
+                            if (authorLiteral == (givenName + " " + familyName).trim().normalize("NFC").toLowerCase()) {
+                                // If the author given name + family name matches a literal.
+                                publications.push(combinedDataElement);
+                                matchFound = true;
+                            }
                         }
                         if (matchFound) {
                             break;
@@ -225,6 +236,7 @@ function getPublications(familyNames, givenNames, combinedParsedData) {
             }   
         }
 
+        // Checking if the editor belongs to editors array of the parsed data.
         let editors = citationJSElement.editor;
         if (!matchFound) {
             if (editors != undefined) {
@@ -240,26 +252,33 @@ function getPublications(familyNames, givenNames, combinedParsedData) {
                                 editorFamilyName += editor[NON_DROPPING_PARTICLE] + " " + editorFamilyName;
                             }
                             if (editorGivenName != undefined 
-                                && removeAccents(editorGivenName.normalize("NFC")).toLowerCase() == givenName.toLowerCase() 
-                                && editorFamilyName != undefined 
-                                && removeAccents(editorFamilyName.normalize("NFC")).toLowerCase() == familyName.toLowerCase()) {
+                            && removeAccents(editorGivenName.normalize("NFC")).toLowerCase() == givenName.toLowerCase() 
+                            && editorFamilyName != undefined 
+                            && removeAccents(editorFamilyName.normalize("NFC")).toLowerCase() == familyName.toLowerCase()) {
                                 // Comparison with given and family name.
                                 publications.push(combinedDataElement);
                                 matchFound = true;
                             } else if (editorGivenName == undefined 
-                                && editorFamilyName != undefined
-                                && removeAccents(editorFamilyName.normalize("NFC")).toLowerCase() == familyName.toLowerCase()) {
+                            && editorFamilyName != undefined
+                            && removeAccents(editorFamilyName.normalize("NFC")).toLowerCase() == familyName.toLowerCase()) {
                                 // If the editor only has a family name and no given name, it will be counted as a family
                                 // name and hence the comparison with family name.
                                 publications.push(combinedDataElement);
                                 matchFound = true; 
                             } else if (editorGivenName != undefined 
-                                && removeAccents(editorGivenName.normalize("NFC")).toLowerCase() == familyName.toLowerCase() 
-                                && editorFamilyName == undefined) {
+                            && removeAccents(editorGivenName.normalize("NFC")).toLowerCase() == familyName.toLowerCase() 
+                            && editorFamilyName == undefined) {
                                 // If the editor only has a given name and no family name, it will be counted as a family
                                 // name and hence the comparison with family name.
                                 publications.push(combinedDataElement);
                                 matchFound = true;
+                            } else if (editor.literal != undefined) {
+                                editorLiteral = removeAccents(editor.literal.normalize("NFC")).toLowerCase();
+                                if (editorLiteral == (givenName + " " + familyName).trim().normalize("NFC").toLowerCase()) {
+                                    // If the editor given name + family name matches a literal.
+                                    publications.push(combinedDataElement);
+                                    matchFound = true;
+                                }
                             }
                             if (matchFound) {
                                 break;
@@ -279,6 +298,12 @@ function getPublications(familyNames, givenNames, combinedParsedData) {
     return publications;
 }
 
+/**
+ * Takes in an Array of parsed publications and returns a grouping by year and type.
+ * @param {Array} parsedPublications Array of parsed publications
+ * @param {boolean} includeUnderReview Boolean which returns under-review status publications if true
+ * @returns {Object} Object which includes publications grouped by year and type
+ */
 function groupPublicationsByYearAndType(parsedPublications, includeUnderReview) {
     let publicationsGroupedByYearAndType = {};
     for (let index = 0; index < parsedPublications.length; index++) {
@@ -286,7 +311,7 @@ function groupPublicationsByYearAndType(parsedPublications, includeUnderReview) 
         let bibTeXParseElement = publication[BIBTEX_PARSE_JS];
         let bibTeXParseEntryTags = bibTeXParseElement.entrytags;
         
-        // Check if under-review or accepted papers are to be included
+        // Check if under-review or accepted papers are to be included.
         if (bibTeXParseEntryTags.status != undefined) {
             let status = bibTeXParseEntryTags.status;
             if (!includeUnderReview && status == UNDER_REVIEW) {
@@ -294,6 +319,7 @@ function groupPublicationsByYearAndType(parsedPublications, includeUnderReview) 
             }
         }
 
+        // Creating a year group.
         let year = "";
         if (bibTeXParseEntryTags.year == undefined) {
             year = NO_YEAR;
@@ -305,6 +331,7 @@ function groupPublicationsByYearAndType(parsedPublications, includeUnderReview) 
             publicationsGroupedByYearAndType[year] = {};
         }
 
+        // Creating a group of a particular entry type.
         let entrytype = ""
         if (bibTeXParseEntryTags.type == undefined) {
             // Find the type of the publication.
@@ -340,6 +367,11 @@ function groupPublicationsByYearAndType(parsedPublications, includeUnderReview) 
     return publicationsGroupedByYearAndType;
 }
 
+/**
+ * Takes in a bibtex-parse-js object and converts it to string format so as to display it inside citation box.
+ * @param {Object} bibTeXParseJSElement Object of bibtex-parse-js
+ * @returns {string} String form of the citation
+ */
 function getCitationContent(bibTeXParseJSElement) {
     let citationContent = '';
     citationContent += '@' + bibTeXParseJSElement.entrytype.toLowerCase() + '{';
@@ -356,7 +388,7 @@ function getCitationContent(bibTeXParseJSElement) {
 }
 
 /**
- * Returns a reversely sorted array of object keys
+ * Returns a reversely sorted array of object keys.
  * @param {Object} object any js object
  * @returns {Array} Array of reveresely sorted object keys
  */
@@ -369,6 +401,11 @@ function getReversedSortedKeys(object) {
     return keys.reverse();
 }
 
+/**
+ * Displays the citations in a formatted manner inside the provided div class.
+ * @param {Array} publicationsGroupedByYearAndType Array of parsed (and filtered) publications
+ * @param {string} divClass Class of the div where the content is to be displayed
+ */
 function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass) {
     let others = undefined;
 
@@ -377,7 +414,7 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
         let contentString = "";
         let year = reversedKeys[index];
         
-        // year heading.
+        // Year heading is appended.
         contentString += `<div style="font-size: 20px; font-weight: bold;">
                             ${year}
                             </div>`;
@@ -386,7 +423,7 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
             let category = CATEGORY_ORDERING[categoryIndex];
             if (publicationsForYear[category] != undefined) {
                 let categoryHeading = CATEGORY_HEADINGS[category];
-                // category heading
+                // Category heading is appended.
                 contentString += `<div style="font-size: 15px; margin-left: 1em; margin-top: 10px; font-weight: bold;">
                                         ${categoryHeading}
                                     </div>`;
@@ -402,7 +439,7 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
                     let bibTeXParseEntryTags = bibTeXParseJSElement.entrytags;
                     let citationJSElement = publication[CITATION_JS];
                     
-                    // authors are handled below.
+                    // Authors are handled below.
                     let citationJSAuthors = citationJSElement[AUTHOR];
                     let bibTeXParseJSAuthors = bibTeXParseEntryTags[AUTHOR];
                     if (citationJSAuthors != undefined) {
@@ -438,7 +475,7 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
                         contentString += `${bibTeXParseJSAuthors}, `;
                     }
 
-                    // editors are handled below.
+                    // Editors are handled below.
                     let citationJSEditors = citationJSElement[EDITOR];
                     let bibTeXParseJSEditors = bibTeXParseEntryTags[EDITOR];
                     if (citationJSEditors != undefined) {
@@ -474,14 +511,14 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
                         contentString += `${bibTeXParseJSEditors}, `;
                     }
 
-                    // title is handled below.
+                    // Title is handled below.
                     if (citationJSElement[TITLE] != undefined) {
                         contentString += `${citationJSElement[TITLE]}, `;
                     } else if (bibTeXParseEntryTags[TITLE] != undefined) {
                         contentString += `${bibTeXParseEntryTags[TITLE]}, `;
                     }
 
-                    // conference/journal name is handled below.
+                    // Conference/journal name is handled below.
                     if (citationJSElement[CONTAINER_TITLE] != undefined) {
                         if (bibTeXParseEntryTags[STATUS] != undefined && bibTeXParseEntryTags[STATUS] == UNDER_REVIEW) {
                             contentString += `Under review at `;
@@ -498,16 +535,16 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
                         contentString += `${bibTeXParseEntryTags[JOURNAL]}, `;
                     }
 
-                    // year is handled here.
+                    // Year is handled here.
                     if (bibTeXParseEntryTags[YEAR] != undefined) {
                         contentString += `${bibTeXParseEntryTags[YEAR]}, `;
                     }
 
-                    // terminating the content with a full stop.
+                    // Terminating the content with a full stop.
                     contentString = contentString.substring(0, contentString.length - 2);
                     contentString += `.`;
 
-                    // show/hide citation button
+                    // Show/hide citation button is attached.
                     let citationKey = bibTeXParseJSElement.citationkey ;
                                         + Math.random().toString(36).substring(2,15);
                     contentString += `<button id="button-${citationKey}"
@@ -541,21 +578,28 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
                 contentString += `</ul>`
             }
         }
-        // appending the citation to the content.
+        // Appending the citation to the content.
         if (year == NO_YEAR) {
-            // handle the case of other publications after all the years.
+            // Handle the case of other publications after all the years.
             others = contentString;
         } else {
-            // append content.
+            // Append content to the div.
             $("." + divClass).append(contentString);
         }
     }
     if (others != undefined) {
-        // now append others at the end.
+        // Now append citations with no year (Other category) at the end.
         $("." + divClass).append(others);
     }
 }
 
+/**
+ * Function that loads, processes and displays content of an author to a specified div class from a specified .bib file.
+ * @param {Array} familyNames Array of possible family names of the author
+ * @param {Array} givenNames Array of possible given names of the author
+ * @param {string} filename File path or url in string format
+ * @param {string} divClass Class of the div where the content is to be displayed
+ */
 function readAndLoadBibtexDBFor(familyNames, givenNames, filename, divClass) {
     fetch(filename).then((response) => {
         response.text().then((allText) => {
@@ -570,7 +614,7 @@ function readAndLoadBibtexDBFor(familyNames, givenNames, filename, divClass) {
                 let combinedParsedData = getCombinedParsedData(lowerCaseKeysParsedBibTeX);
 
                 // filter the publication based on author's family names and given names.
-                let publications = getPublications(familyNames, givenNames, combinedParsedData);
+                let publications = filterPublications(familyNames, givenNames, combinedParsedData);
                 
                 // group the data by year and type.
                 let publicationsGroupedByYearAndType = groupPublicationsByYearAndType(publications, false);
@@ -585,6 +629,11 @@ function readAndLoadBibtexDBFor(familyNames, givenNames, filename, divClass) {
     });
 }
 
+/**
+ * Loads, processes and displays all citations from a specified .bib file.
+ * @param {string} filename File path or url in string format
+ * @param {string} divClass Class of the div where the content is to be displayed 
+ */
 function readAndLoadAllBibtexDB(filename, divClass) {
     fetch(filename).then((response) => {
         response.text().then((allText) => {
@@ -597,10 +646,10 @@ function readAndLoadAllBibtexDB(filename, divClass) {
                 
                 // get combined data which includes bibtex-parse-js and citation-js data.
                 let combinedParsedData = getCombinedParsedData(lowerCaseKeysParsedBibTeX);
-
+                
                 // group the data by year and type.
                 let bibTeXDataGroupedByYearAndType = groupPublicationsByYearAndType(combinedParsedData, true);
-
+                console.log(bibTeXDataGroupedByYearAndType);
                 // load the parsed and grouped content into a div on the page.
                 loadBibTeXContentDivFromData(bibTeXDataGroupedByYearAndType, divClass);
             } catch (error) {
@@ -611,5 +660,6 @@ function readAndLoadAllBibtexDB(filename, divClass) {
     });
 }
 
+// Globalizing the variables for access outside the bundled script.
 window.getPublicationsFor = readAndLoadBibtexDBFor;
 window.getAllPublications = readAndLoadAllBibtexDB;
