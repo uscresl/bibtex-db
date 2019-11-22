@@ -1,0 +1,34 @@
+{
+  "name": "bibtex-parser",
+  "version": "1.0.0",
+  "description": "A project that parses a BibTeX file containing paper details and displays it in an appropriate format.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "browserify-test": "browserify ntest.js -o test.js",
+    "browserify": "browserify nindex.js -o index.js",
+    "start-test": "nodemon --exec \"npm run browserify-test\"",
+    "start": "nodemon --exec \"npm run browserify\""
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "index.js",
+      "test.js"
+    ]
+  },
+  "keywords": [
+    "BibTeX",
+    "Parser"
+  ],
+  "author": "Vedant Mistry",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^1.19.4"
+  },
+  "dependencies": {
+    "bibtex-parse-js": "0.0.24",
+    "citation-js": "^0.5.0-alpha.4",
+    "jquery": "^3.4.1",
+    "remove-accents": "^0.4.2"
+  }
+}
