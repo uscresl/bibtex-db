@@ -3058,7 +3058,7 @@ function readAndLoadAllBibtexDB(filename, divClass) {
                 
                 // group the data by year and type.
                 let bibTeXDataGroupedByYearAndType = groupPublicationsByYearAndType(combinedParsedData, true);
-                console.log(bibTeXDataGroupedByYearAndType);
+                
                 // load the parsed and grouped content into a div on the page.
                 loadBibTeXContentDivFromData(bibTeXDataGroupedByYearAndType, divClass);
             } catch (error) {
