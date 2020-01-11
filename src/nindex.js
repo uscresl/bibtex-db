@@ -27,6 +27,13 @@ const CONTAINER_TITLE = "container-title";
 const YEAR = "year";
 const STATUS = "status";
 const TYPE = "type";
+const URL_SITE = "url_site";
+const URL_PREPRINT = "url_preprint";
+const URL_CODE = "url_code";
+const URL_DATASET = "url_dataset";
+const URL_POSTER = "url_poster";
+const URL_SLIDES = "url_slides";
+const URL_VIDEO = "url_video";
 
 // Indexing constants
 const NON_DROPPING_PARTICLE = "non-dropping-particle";
@@ -377,7 +384,8 @@ function getCitationContent(bibTeXParseJSElement) {
     citationContent += '@' + bibTeXParseJSElement.entrytype.toLowerCase() + '{';
     citationContent += bibTeXParseJSElement.citationkey + ',';
     for (let key in bibTeXParseJSElement.entrytags) {
-        if (key == STATUS || key == TYPE) {
+        if (key == STATUS || key == TYPE || key == URL_CODE || key == URL_DATASET || key == URL_POSTER 
+            || key == URL_PREPRINT || key == URL_SITE || key == URL_SLIDES || key == URL_VIDEO) {
             continue;
         }
         value = bibTeXParseJSElement.entrytags[key];
@@ -544,8 +552,73 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
                     contentString = contentString.substring(0, contentString.length - 2);
                     contentString += `.`;
 
+                    // Url buttons are handled here.
+                    contentString += `<br/>`
+                    if (bibTeXParseEntryTags[URL_SITE] != undefined) {
+                        contentString += `<button onclick="window.location.href='${bibTeXParseEntryTags[URL_SITE]}';"
+                                                style="background-color: #880000; margin-left: 1vw;
+                                                    padding-left: 15px; padding-right: 15px;
+                                                    color: white; border: none; border-radius: 5px;">
+                                                        Site
+                                                    </button>`;
+                    }
+
+                    if (bibTeXParseEntryTags[URL_PREPRINT] != undefined) {
+                        contentString += `<button onclick="window.location.href='${bibTeXParseEntryTags[URL_PREPRINT]}';"
+                                                style="background-color: #880000; margin-left: 1vw;
+                                                    padding-left: 15px; padding-right: 15px;
+                                                    color: white; border: none; border-radius: 5px;">
+                                                        Preprint
+                                                    </button>`;
+                    }
+
+                    if (bibTeXParseEntryTags[URL_CODE] != undefined) {
+                        contentString += `<button onclick="window.location.href='${bibTeXParseEntryTags[URL_CODE]}';"
+                                                style="background-color: #880000; margin-left: 1vw;
+                                                    padding-left: 15px; padding-right: 15px;
+                                                    color: white; border: none; border-radius: 5px;">
+                                                        Code
+                                                    </button>`;
+                    }
+
+                    if (bibTeXParseEntryTags[URL_DATASET] != undefined) {
+                        contentString += `<button onclick="window.location.href='${bibTeXParseEntryTags[URL_DATASET]}';"
+                                                style="background-color: #880000; margin-left: 1vw;
+                                                    padding-left: 15px; padding-right: 15px;
+                                                    color: white; border: none; border-radius: 5px;">
+                                                        Dataset
+                                                    </button>`;
+                    }
+
+                    if (bibTeXParseEntryTags[URL_POSTER] != undefined) {
+                        contentString += `<button onclick="window.location.href='${bibTeXParseEntryTags[URL_POSTER]}';"
+                                                style="background-color: #880000; margin-left: 1vw;
+                                                    padding-left: 15px; padding-right: 15px;
+                                                    color: white; border: none; border-radius: 5px;">
+                                                        Poster
+                                                    </button>`;
+                    }
+
+                    if (bibTeXParseEntryTags[URL_SLIDES] != undefined) {
+                        contentString += `<button onclick="window.location.href='${bibTeXParseEntryTags[URL_SLIDES]}';"
+                                                style="background-color: #880000; margin-left: 1vw;
+                                                    padding-left: 15px; padding-right: 15px;
+                                                    color: white; border: none; border-radius: 5px;">
+                                                        Slides
+                                                    </button>`;
+                    }
+
+                    if (bibTeXParseEntryTags[URL_VIDEO] != undefined) {
+                        contentString += `<button onclick="window.location.href='${bibTeXParseEntryTags[URL_VIDEO]}';"
+                                                style="background-color: #880000; margin-left: 1vw;
+                                                    padding-left: 15px; padding-right: 15px;
+                                                    color: white; border: none; border-radius: 5px;">
+                                                        Video
+                                                    </button>`;
+                    }
+
                     // Show/hide citation button is attached.
-                    let citationKey = bibTeXParseJSElement.citationkey ;
+                    let citationKey = bibTeXParseJSElement.citationkey
                                         + Math.random().toString(36).substring(2,15);
                     contentString += `<button id="button-${citationKey}"
                                             class="button-${citationKey}"
@@ -561,7 +634,6 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
                                                     font-family: 'Courier New', Courier, monospace;">
                                             ${getCitationContent(bibTeXParseJSElement)}
                                         </div>`;
-                    contentString += "</div>";
                     contentString += ""
                     contentString += `<script>
                                             $(".button-${citationKey}").click(() => {
@@ -646,7 +718,8 @@ function readAndLoadAllBibtexDB(filename, divClass) {
                 
                 // get combined data which includes bibtex-parse-js and citation-js data.
                 let combinedParsedData = getCombinedParsedData(lowerCaseKeysParsedBibTeX);
-                
+                console.log(combinedParsedData);
+
                 // group the data by year and type.
                 let bibTeXDataGroupedByYearAndType = groupPublicationsByYearAndType(combinedParsedData, true);
                 
