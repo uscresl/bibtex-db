@@ -2647,7 +2647,13 @@ function filterPublications(familyNames, givenNames, combinedParsedData) {
                             matchFound = true;
                         } else if (author.literal != undefined) {
                             authorLiteral = removeAccents(author.literal.normalize("NFC")).toLowerCase();
+                            console.log(authorLiteral.split(",").map(s=>s.trim()));
                             if (authorLiteral == (givenName + " " + familyName).trim().normalize("NFC").toLowerCase()) {
+                                // If the author given name + family name matches a literal.
+                                publications.push(combinedDataElement);
+                                matchFound = true;
+                            } else if (authorLiteral.split(",").map(s =>s.trim()).join(",")
+                                        == (familyName + "," + givenName).trim().normalize("NFC").toLowerCase()) {
                                 // If the author given name + family name matches a literal.
                                 publications.push(combinedDataElement);
                                 matchFound = true;
@@ -2966,7 +2972,7 @@ function loadBibTeXContentDivByType(publicationsGroupedByType, title, divClass) 
                                 }
                             }
                         } else {
-                            contentString += `${author.literal}, `;
+                            contentString += `${author.literal.split(",").map(s=>s.trim()).join(" ")}, `;
                         }
                     }
                 } else if (bibTeXParseJSAuthors != undefined) {
@@ -3184,7 +3190,7 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
                                     }
                                 }
                             } else {
-                                contentString += `${author.literal}, `;
+                                contentString += `${author.literal.split(",").map(s=>s.trim()).join(" ")}, `;
                             }
                         }
                     } else if (bibTeXParseJSAuthors != undefined) {
@@ -3353,7 +3359,9 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
  * @param {string} filename File path or url in string format
  * @param {string} divClass Class of the div where the content is to be displayed
  */
-function readAndLoadBibtexDBFor(familyNames, givenNames, filename, divClass) {
+function readAndLoadBibtexDBFor(familyNames, givenNames, filename) {
+    let divClass = `bibtex-` + Math.random().toString(36).substring(2,15);
+    document.write(`<div id="${divClass}" class="${divClass}"></div>`);
     fetch(filename).then((response) => {
         response.text().then((allText) => {
             try {
@@ -3387,8 +3395,9 @@ function readAndLoadBibtexDBFor(familyNames, givenNames, filename, divClass) {
  * @param {string} filename File path or url in string format
  * @param {string} divClass Class of the div where the content is to be displayed 
  */
-function readAndLoadAllBibtexDB(filename, divClass) {
-    document.write(`<div id="bibtex-content" class="bibtex-content"></div>`)
+function readAndLoadAllBibtexDB(filename) {
+    let divClass = `bibtex-${title}-` + Math.random().toString(36).substring(2,15);
+    document.write(`<div id="${divClass}" class="${divClass}"></div>`);
     fetch(filename).then((response) => {
         response.text().then((allText) => {
             try {
@@ -3417,7 +3426,7 @@ function readAndLoadAllBibtexDB(filename, divClass) {
 
 function readAndLoadBibtexFrom(filename, title) {
     let divClass = `bibtex-${title}-` + Math.random().toString(36).substring(2,15);
-    document.write(`<div id="${divClass}" class="${divClass}"></div>`)
+    document.write(`<div id="${divClass}" class="${divClass}"></div>`);
     fetch(filename).then((response) => {
         response.text().then((allText) => {
             try {

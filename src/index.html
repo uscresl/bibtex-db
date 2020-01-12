@@ -22,15 +22,15 @@
         getAllPublicationsFromFile("sample2.bib", "2020");
         getAllPublicationsFromFile("sample3.bib", "2021");
         
-        let familyNames = ["heiden"];
-        let givenNames = ["eric"];
+        let familyNames = ["stauble"];
+        let givenNames = ["markus"];
         
-        $(".bibtex-content-filtered").append(
+        document.write(
             `<h2>
                 Filtered results for family names: ${familyNames} and given names: ${givenNames}
             </h2>`
-            );
-        getPublicationsFor(familyNames, givenNames, "sample.bib", "bibtex-content-filtered");
+        );
+        getPublicationsFor(familyNames, givenNames, "sample.bib");
     </script>
 </body>
 </html>
