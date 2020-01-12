@@ -15,10 +15,12 @@
 <body>
     <h1>BibTeX Parser</h1>
     <hr>
-    <div id="bibtex-content" class="bibtex-content"></div>
+    <!-- <div id="bibtex-content" class="bibtex-content"></div> -->
     <div id="bibtex-content" class="bibtex-content-filtered"></div>
     <script>
-        getAllPublications("sample.bib", "bibtex-content");
+        getAllPublicationsFromFile("sample1.bib", "2019");
+        getAllPublicationsFromFile("sample2.bib", "2020");
+        getAllPublicationsFromFile("sample3.bib", "2021");
         
         let familyNames = ["heiden"];
         let givenNames = ["eric"];
