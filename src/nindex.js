@@ -238,8 +238,8 @@ function filterPublications(familyNames, givenNames, combinedParsedData) {
                             matchFound = true;
                         } else if (author.literal != undefined) {
                             authorLiteral = removeAccents(author.literal.normalize("NFC")).toLowerCase();
-                            console.log(authorLiteral.split(",").map(s=>s.trim()));
-                            if (authorLiteral == (givenName + " " + familyName).trim().normalize("NFC").toLowerCase()) {
+                            if (authorLiteral.split(" ").map(s =>s.trim()).join(" ")
+                                    == (givenName + " " + familyName).trim().normalize("NFC").toLowerCase()) {
                                 // If the author given name + family name matches a literal.
                                 publications.push(combinedDataElement);
                                 matchFound = true;
@@ -302,8 +302,14 @@ function filterPublications(familyNames, givenNames, combinedParsedData) {
                                 matchFound = true;
                             } else if (editor.literal != undefined) {
                                 editorLiteral = removeAccents(editor.literal.normalize("NFC")).toLowerCase();
-                                if (editorLiteral == (givenName + " " + familyName).trim().normalize("NFC").toLowerCase()) {
-                                    // If the editor given name + family name matches a literal.
+                                if (editorLiteral.split(" ").map(s =>s.trim()).join(" ")
+                                        == (givenName + " " + familyName).trim().normalize("NFC").toLowerCase()) {
+                                    // If the author given name + family name matches a literal.
+                                    publications.push(combinedDataElement);
+                                    matchFound = true;
+                                } else if (editorLiteral.split(",").map(s =>s.trim()).join(",")
+                                            == (familyName + "," + givenName).trim().normalize("NFC").toLowerCase()) {
+                                    // If the author given name + family name matches a literal.
                                     publications.push(combinedDataElement);
                                     matchFound = true;
                                 }
@@ -948,7 +954,6 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
  * @param {Array} familyNames Array of possible family names of the author
  * @param {Array} givenNames Array of possible given names of the author
  * @param {string} filename File path or url in string format
- * @param {string} divClass Class of the div where the content is to be displayed
  */
 function readAndLoadBibtexDBFor(familyNames, givenNames, filename) {
     let divClass = `bibtex-` + Math.random().toString(36).substring(2,15);
@@ -984,10 +989,9 @@ function readAndLoadBibtexDBFor(familyNames, givenNames, filename) {
 /**
  * Loads, processes and displays all citations from a specified .bib file.
  * @param {string} filename File path or url in string format
- * @param {string} divClass Class of the div where the content is to be displayed 
  */
 function readAndLoadAllBibtexDB(filename) {
-    let divClass = `bibtex-${title}-` + Math.random().toString(36).substring(2,15);
+    let divClass = `bibtex-` + Math.random().toString(36).substring(2,15);
     document.write(`<div id="${divClass}" class="${divClass}"></div>`);
     fetch(filename).then((response) => {
         response.text().then((allText) => {
@@ -1000,7 +1004,6 @@ function readAndLoadAllBibtexDB(filename) {
                 
                 // get combined data which includes bibtex-parse-js and citation-js data.
                 let combinedParsedData = getCombinedParsedData(lowerCaseKeysParsedBibTeX);
-                console.log(combinedParsedData);
 
                 // group the data by year and type.
                 let bibTeXDataGroupedByYearAndType = groupPublicationsByYearAndType(combinedParsedData, true);
@@ -1015,7 +1018,12 @@ function readAndLoadAllBibtexDB(filename) {
     });
 }
 
-function readAndLoadBibtexFrom(filename, title) {
+/**
+ * Loads, processes and displays all citations from a specified .bib file.
+ * @param {string} filename File path or url in string format
+ * @param {string} title Title to be given to the data
+ */
+function readAndLoadBibtex(filename, title) {
     let divClass = `bibtex-${title}-` + Math.random().toString(36).substring(2,15);
     document.write(`<div id="${divClass}" class="${divClass}"></div>`);
     fetch(filename).then((response) => {
@@ -1029,11 +1037,9 @@ function readAndLoadBibtexFrom(filename, title) {
                 
                 // get combined data which includes bibtex-parse-js and citation-js data.
                 let combinedParsedData = getCombinedParsedData(lowerCaseKeysParsedBibTeX);
-                console.log(combinedParsedData);
 
                 // group the data by year and type.
                 let bibTeXDataGroupedByType = groupPublicationsByType(combinedParsedData, true);
-                console.log(bibTeXDataGroupedByType)
 
                 // load the parsed and grouped content into a div on the page.
                 // loadBibTeXContentDivFromData(bibTeXDataGroupedByYearAndType, divClass);
@@ -1046,7 +1052,46 @@ function readAndLoadBibtexFrom(filename, title) {
     });
 }
 
+/**
+ * Function that loads, processes and displays content of an author to a specified div class from a specified .bib file.
+ * @param {Array} familyNames Array of possible family names of the author
+ * @param {Array} givenNames Array of possible given names of the author
+ * @param {string} filename File path or url in string format
+ * @param {string} title Title to be given to the data
+ */
+function readAndLoadBibtexFor(familyNames, givenNames, filename, title) {
+    let divClass = `bibtex-${title}-` + Math.random().toString(36).substring(2,15);
+    document.write(`<div id="${divClass}" class="${divClass}"></div>`);
+    fetch(filename).then((response) => {
+        response.text().then((allText) => {
+            try {
+                // parse the file text
+                let parsedBibTeX = bibTeXParse.toJSON(allText);
+                
+                // convert all keys to lowercase to enable ease of access
+                let lowerCaseKeysParsedBibTeX = convertKeysToLowerCase(parsedBibTeX);
+                
+                // get combined data which includes bibtex-parse-js and citation-js data.
+                let combinedParsedData = getCombinedParsedData(lowerCaseKeysParsedBibTeX);
+
+                // filter the publication based on author's family names and given names.
+                let publications = filterPublications(familyNames, givenNames, combinedParsedData);
+                
+                // group the data by year and type.
+                let publicationsGroupedByType = groupPublicationsByType(publications, false);
+                
+                // load the parsed and grouped content into a div on the page.
+                loadBibTeXContentDivByType(publicationsGroupedByType, title, divClass);
+            } catch (error) {
+                console.log(error);
+                $(divClass).append("BibTeX file parsing or internal error.");
+            }
+        });
+    });
+}
+
 // Globalizing the variables for access outside the bundled script.
-window.getPublicationsFor = readAndLoadBibtexDBFor;
-window.getAllPublications = readAndLoadAllBibtexDB;
-window.getAllPublicationsFromFile = readAndLoadBibtexFrom;
+window.getPublicationsByYearForNames = readAndLoadBibtexDBFor;
+window.getAllPublicationsByYear = readAndLoadAllBibtexDB;
+window.getAllPublications = readAndLoadBibtex;
+window.getPublicationsFor = readAndLoadBibtexFor;

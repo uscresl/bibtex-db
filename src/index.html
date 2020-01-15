@@ -18,19 +18,28 @@
     <!-- <div id="bibtex-content" class="bibtex-content"></div> -->
     <div id="bibtex-content" class="bibtex-content-filtered"></div>
     <script>
-        getAllPublicationsFromFile("sample1.bib", "2019");
-        getAllPublicationsFromFile("sample2.bib", "2020");
-        getAllPublicationsFromFile("sample3.bib", "2021");
+        getAllPublications("sample1.bib", "2019");
+        getAllPublications("sample2.bib", "2020");
+        getAllPublications("sample3.bib", "2021");
         
-        let familyNames = ["stauble"];
-        let givenNames = ["markus"];
+        let familyNames = ["heiden"];
+        let givenNames = ["eric"];
         
         document.write(
             `<h2>
                 Filtered results for family names: ${familyNames} and given names: ${givenNames}
             </h2>`
         );
-        getPublicationsFor(familyNames, givenNames, "sample.bib");
+        getPublicationsFor(familyNames, givenNames, "sample.bib", "2022");
+
+        familyNames = ["durand"];
+        givenNames = ["fredo"];
+        document.write(
+            `<h2>
+                Filtered results for family names: ${familyNames} and given names: ${givenNames}
+            </h2>`
+        );
+        getPublicationsFor(familyNames, givenNames, "sample.bib", "2023");
     </script>
 </body>
 </html>
