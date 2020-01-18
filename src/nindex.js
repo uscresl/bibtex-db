@@ -499,8 +499,8 @@ function getReversedSortedKeys(object) {
  * @returns {string} Button with the link associated to it
  */
 function generateButtonLink(url, title) {
-    return `<a href="${url}"
-                style="text-decoration: none; background-color: #880000; margin-left: 1vw;
+    return `<a href="${url}" rel="noopener noreferrer" target="_blank"
+                style="text-decoration: none; background-color: #880000; margin-right: 5px;
                     padding-left: 15px; padding-right: 15px; font-size: 13.33px;
                     font-family: Arial, Helvetica, sans-serif;
                     color: white; border: none; border-radius: 5px;">
@@ -688,7 +688,7 @@ function loadBibTeXContentDivByType(publicationsGroupedByType, title, divClass) 
                                     + Math.random().toString(36).substring(2,15);
                 contentString += `<button id="button-${citationKey}"
                                         class="button-${citationKey}"
-                                        style="background-color: #880000; margin-left: 1vw; font-size: 13.33px;
+                                        style="background-color: #880000; margin-right: 5px; font-size: 13.33px;
                                                         padding-left: 15px; padding-right: 15px;
                                                         color: white; border: none; border-radius: 5px;">
                                         Show Citation
