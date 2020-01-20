@@ -500,7 +500,7 @@ function getReversedSortedKeys(object) {
  */
 function generateButtonLink(url, title) {
     return `<a href="${url}" rel="noopener noreferrer" target="_blank"
-                style="display: inline-block; height: 16px; text-decoration: none; background-color: #880000; margin-right: 5px;
+                style="display: inline-block; text-decoration: none; background-color: #880000; margin-right: 5px;
                     padding-left: 15px; padding-right: 15px; font-size: 13.33px;
                     font-family: Arial, Helvetica, sans-serif;
                     color: white; border: none; border-radius: 5px;">${title}</a>`;
@@ -685,13 +685,12 @@ function loadBibTeXContentDivByType(publicationsGroupedByType, title, divClass) 
                 // Show/hide citation button is attached.
                 let citationKey = bibTeXParseJSElement.citationkey
                                     + Math.random().toString(36).substring(2,15);
-                contentString += `<button id="button-${citationKey}"
+                contentString += `<a id="button-${citationKey}"
                                         class="button-${citationKey}"
-                                        style="background-color: #880000; height: 16px; margin-right: 5px; font-size: 13.33px;
-                                                        padding-left: 15px; padding-right: 15px;
-                                                        color: white; border: none; border-radius: 5px;">
-                                        Show Citation
-                                    </button>`;
+                                        style="display: inline-block; text-decoration: none; background-color: #880000;
+                                                    padding-left: 15px; padding-right: 15px; font-size: 13.33px;
+                                                    font-family: Arial, Helvetica, sans-serif; cursor: pointer;
+                                                    color: white; border: none; border-radius: 5px;">Show Citation</a>`;
                 contentString += `<div id="citation-${citationKey}"
                                     class="citation-${citationKey}"
                                     style="background-color: #e8e8e8; padding: 5px; margin: 5px; color: black;
@@ -905,13 +904,12 @@ function loadBibTeXContentDivFromData(publicationsGroupedByYearAndType, divClass
                     // Show/hide citation button is attached.
                     let citationKey = bibTeXParseJSElement.citationkey
                                         + Math.random().toString(36).substring(2,15);
-                    contentString += `<button id="button-${citationKey}"
+                    contentString += `<a id="button-${citationKey}"
                                             class="button-${citationKey}"
-                                            style="background-color: #880000; margin-left: 1vw; font-size: 13.33px;
-                                                            padding-left: 15px; padding-right: 15px;
-                                                            color: white; border: none; border-radius: 5px;">
-                                            Show Citation
-                                        </button>`;
+                                            style="display: inline-block; text-decoration: none; background-color: #880000;
+                                                    padding-left: 15px; padding-right: 15px; font-size: 13.33px;
+                                                    font-family: Arial, Helvetica, sans-serif; cursor: pointer;
+                                                    color: white; border: none; border-radius: 5px;">Show Citation</a>`;
                     contentString += `<div id="citation-${citationKey}"
                                         class="citation-${citationKey}"
                                         style="background-color: #e8e8e8; padding: 5px; margin: 5px; color: black;
