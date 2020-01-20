@@ -500,12 +500,10 @@ function getReversedSortedKeys(object) {
  */
 function generateButtonLink(url, title) {
     return `<a href="${url}" rel="noopener noreferrer" target="_blank"
-                style="text-decoration: none; background-color: #880000; margin-right: 5px;
+                style="display: inline-flex; text-decoration: none; background-color: #880000; margin-right: 5px;
                     padding-left: 15px; padding-right: 15px; font-size: 13.33px;
                     font-family: Arial, Helvetica, sans-serif;
-                    color: white; border: none; border-radius: 5px;">
-                        ${title}
-                    </a>`;
+                    color: white; border: none; border-radius: 5px;">${title}</a>`;
 }
 
 /**
@@ -525,14 +523,15 @@ function loadBibTeXContentDivByType(publicationsGroupedByType, title, divClass) 
         if (publicationsGroupedByType[category] != undefined) {
             let categoryHeading = CATEGORY_HEADINGS[category];
             // Category heading is appended.
-            contentString += `<div style="font-size: 15px; margin-left: 1em; margin-top: 10px; font-weight: bold;">
+            contentString += `<div style="font-size: 15px; margin-top: 10px; font-weight: bold;">
                                     ${categoryHeading}
                                 </div>`;
 
-            contentString += `<ul>`;
+            // contentString += `<ul>`;
             let publicationsForCategory = publicationsGroupedByType[category];
             for (let publicationIndex = 0; publicationIndex < publicationsForCategory.length; publicationIndex++) {
-                contentString += `<li>`;
+                // contentString += `<li>`;
+                contentString += `<div style="font-size: 15px; margin-top: 1px; margin-bottom: 1px;">`;
                 
                 publication = publicationsForCategory[publicationIndex];
                 
@@ -654,7 +653,7 @@ function loadBibTeXContentDivByType(publicationsGroupedByType, title, divClass) 
                     - url_slides
                     - url_video
                 */
-                contentString += `<br/>`
+               contentString += `<br/>`
                 if (bibTeXParseEntryTags[URL_SITE] != undefined) {
                     contentString += generateButtonLink(bibTeXParseEntryTags[URL_SITE], BUTTON_TITLES[URL_SITE]);
                 }
@@ -711,9 +710,11 @@ function loadBibTeXContentDivByType(publicationsGroupedByType, title, divClass) 
                                             }
                                         });
                                     </script>`
-                contentString += `</li>`;
+                // contentString += `</li>`;
+                contentString += `</div>`;
             }
-            contentString += `</ul>`
+            // contentString += `</ul>`;
+            contentString += `<br/>`;
         }
     }
     // Append content to the div.
