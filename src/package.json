@@ -28,7 +28,7 @@
   "dependencies": {
     "bibtex-parse-js": "0.0.24",
     "citation-js": "^0.5.0-alpha.4",
-    "jquery": "^3.4.1",
+    "jquery": "^3.5.0",
     "remove-accents": "^0.4.2"
   }
 }
